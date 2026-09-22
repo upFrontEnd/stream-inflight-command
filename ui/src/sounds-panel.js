@@ -96,7 +96,12 @@ export function mountSoundsPanel(root) {
     groupsEl.innerHTML = CATEGORIES.map(({ value, label, hint }) => {
       const files = sounds[value] ?? [];
       const items = files.length
-        ? files.map((f) => `<li class="chip">${stripExtension(f)}</li>`).join('')
+        ? files
+            .map((f) => {
+              const command = stripExtension(f);
+              return `<li><button type="button" class="chip" data-command="${command}">${command}</button></li>`;
+            })
+            .join('')
         : '<li class="chip chip--empty">Aucun son</li>';
       return `
         <div class="sounds-group">
@@ -109,6 +114,27 @@ export function mountSoundsPanel(root) {
       `;
     }).join('');
   }
+
+  async function copyCommand(button) {
+    const command = button.dataset.command;
+    try {
+      await navigator.clipboard.writeText(command);
+      const original = button.textContent;
+      button.textContent = 'Copié !';
+      button.classList.add('chip--copied');
+      setTimeout(() => {
+        button.textContent = original;
+        button.classList.remove('chip--copied');
+      }, 1000);
+    } catch (err) {
+      console.error('Copie dans le presse-papier impossible :', err);
+    }
+  }
+
+  groupsEl.addEventListener('click', (event) => {
+    const button = event.target.closest('.chip[data-command]');
+    if (button) copyCommand(button);
+  });
 
   async function loadSounds() {
     try {

@@ -370,10 +370,30 @@ body {
   padding: 0.3rem 0.7rem;
   font-size: 0.8rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--text);
 
   &--empty {
     color: var(--text-muted);
     font-family: inherit;
     font-style: italic;
+  }
+}
+
+button.chip {
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &.chip--copied {
+    border-color: var(--ok);
+    color: var(--ok);
   }
 }
