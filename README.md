@@ -236,6 +236,11 @@ plusieurs. Rien n'est envoyé si la liste est vide.
 Suppression en un clic sur le ✕. Pas de redémarrage du bot nécessaire, la
 liste est relue à chaque envoi programmé.
 
+Un compte à rebours affiche le temps avant le prochain envoi programmé, et le
+bouton **"Tester maintenant"** envoie tout de suite le prochain message de la
+rotation dans le vrai chat, sans décaler le minutage des envois suivants —
+pratique pour vérifier le rendu sans attendre 30 minutes.
+
 Les messages sont stockés dans `bot/announcements.json` (non commité, voir
 `bot/announcements.example.json` pour le format si tu préfères éditer à la
 main).
@@ -270,6 +275,8 @@ bun run deploy:worker
 | `/api/announcements`   | GET     | Liste les messages d'annonce                    |
 | `/api/announcements`   | POST    | Ajoute un message (`{ "text": "..." }` en JSON) |
 | `/api/announcements/<id>` | DELETE | Supprime un message                          |
+| `/api/announcements/schedule` | GET | `{ nextAt }` : timestamp du prochain envoi programmé |
+| `/api/announcements/test` | POST | Envoie tout de suite le prochain message, sans décaler le minutage |
 
 ## À vérifier / limites connues
 

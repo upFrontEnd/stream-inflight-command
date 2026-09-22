@@ -1,6 +1,7 @@
 import { readdir, mkdir } from 'node:fs/promises';
 import { reloadCommands } from './commands-store.js';
 import { listAnnouncements, addAnnouncement, removeAnnouncement } from './announcements-store.js';
+import { getNextAnnounceAt } from './announce-schedule.js';
 
 const clients = new Set();
 
@@ -105,7 +106,7 @@ async function handleAddAnnouncement(req) {
   return jsonResponse(entry);
 }
 
-export function startOverlayServer(port) {
+export function startOverlayServer(port, { onTestAnnouncement } = {}) {
   return Bun.serve({
     port,
     async fetch(req, server) {
@@ -137,6 +138,21 @@ export function startOverlayServer(port) {
           return await handleAddAnnouncement(req);
         } catch (err) {
           console.error('[announcements] échec ajout :', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
+        }
+      }
+
+      if (url.pathname === '/api/announcements/schedule' && req.method === 'GET') {
+        return jsonResponse({ nextAt: getNextAnnounceAt() });
+      }
+
+      if (url.pathname === '/api/announcements/test' && req.method === 'POST') {
+        if (!onTestAnnouncement) return jsonResponse({ error: 'Test indisponible' }, 500);
+        try {
+          const entry = await onTestAnnouncement();
+          return jsonResponse({ ok: true, sent: entry ?? null });
+        } catch (err) {
+          console.error('[announcements] échec test :', err);
           return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
         }
       }

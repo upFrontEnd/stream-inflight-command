@@ -4,6 +4,7 @@ import { hasPermission, getUserRole } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
+import { setNextAnnounceAt } from './announce-schedule.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
@@ -70,20 +71,31 @@ let announceIndex = 0;
 
 async function announceNext() {
   const list = await listAnnouncements();
-  if (list.length === 0) return;
+  if (list.length === 0) return null;
 
   const entry = list[announceIndex % list.length];
   announceIndex += 1;
   client.say(CHANNEL, entry.text);
   console.log(`[announcements] envoyé : "${entry.text}"`);
+  return entry;
 }
 
+function scheduleNextAnnounce() {
+  setNextAnnounceAt(Date.now() + ANNOUNCE_INTERVAL_MS);
+}
+
+scheduleNextAnnounce();
 setInterval(() => {
   announceNext().catch((err) => console.error('[announcements] échec envoi :', err));
+  scheduleNextAnnounce();
 }, ANNOUNCE_INTERVAL_MS);
 
 await client.connect();
-startOverlayServer(OVERLAY_PORT);
+startOverlayServer(OVERLAY_PORT, {
+  // Bouton "Tester maintenant" du dashboard : envoie le prochain message de
+  // la rotation tout de suite, sans toucher au minutage des envois planifiés.
+  onTestAnnouncement: () => announceNext(),
+});
 console.log(`Overlay sons dispo sur http://localhost:${OVERLAY_PORT} (à ajouter comme Browser Source dans OBS)`);
 console.log(`API de gestion des sons dispo sur http://localhost:${OVERLAY_PORT}/api/sounds`);
 console.log(`Annonces toutes les ${ANNOUNCE_INTERVAL_MS / 60_000} min, gérées sur http://localhost:${OVERLAY_PORT}/api/announcements`);

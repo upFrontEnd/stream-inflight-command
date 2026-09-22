@@ -59,3 +59,20 @@ export async function deleteAnnouncement(id) {
   }
   return res.json();
 }
+
+export async function fetchAnnounceSchedule() {
+  const res = await fetch(`${BOT_URL}/api/announcements/schedule`);
+  if (!res.ok) {
+    throw new Error(`Le bot a répondu ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function testAnnouncement() {
+  const res = await fetch(`${BOT_URL}/api/announcements/test`, { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
+  }
+  return data;
+}
