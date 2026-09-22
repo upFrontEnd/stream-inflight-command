@@ -14,6 +14,7 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 Mo
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+  'access-control-allow-headers': 'Content-Type',
 };
 
 const MAX_ANNOUNCEMENT_LENGTH = 450; // limite Twitch (500) moins de la marge
