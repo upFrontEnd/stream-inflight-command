@@ -4,7 +4,7 @@ export function formatVol(d) {
 }
 
 export function formatAppareil(d) {
-  return `🛩️ ${d.aircraft.name} (${d.aircraft.icao}) — immat. ${d.aircraft.reg}`;
+  return `🛩️ ${d.aircraft.name} (${d.aircraft.icao}) | immat. ${d.aircraft.reg}`;
 }
 
 export function formatPlandevol(d) {

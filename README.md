@@ -3,7 +3,7 @@
 Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!vol`, `!appareil`,
 `!plandevol`, `!meteo`) alimentées automatiquement par le plan de vol SimBrief
 du jour, et commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
-connecté au chat — plus un dashboard pour vérifier les données et gérer les
+connecté au chat, plus un dashboard pour vérifier les données et gérer les
 sons avant le live.
 
 ## Structure
@@ -54,14 +54,14 @@ stream-command/
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
-par commande (ex: `/plandevol`) — c'est une brique indépendante, testable
+par commande (ex: `/plandevol`). C'est une brique indépendante, testable
 seule via curl/navigateur.
 
 Le bot (`bot/`) est un bot Twitch 100% custom (`tmi.js`) qui gère tout côté
 chat : il relaie `!vol`/`!appareil`/`!plandevol`/`!meteo` vers le Worker et poste la
 réponse dans le chat, et quand quelqu'un tape une commande son autorisée pour
 son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
-OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers —
+OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers :
 tout passe par `bun run dev` / `bun run bot`.
 
 ## Prérequis : Node 22+
@@ -74,10 +74,10 @@ nvm install 22
 
 Tous les scripts (`bun run dev:worker`, `bun run build:ui`, etc.) passent par
 `scripts/with-node22.sh`, qui bascule automatiquement sur Node 22 via nvm
-avant de lancer la vraie commande — pas besoin de faire `nvm use` toi-même.
+avant de lancer la vraie commande, pas besoin de faire `nvm use` toi-même.
 
 ⚠️ Ne pas contourner ça en forçant `wrangler` à tourner sous le runtime de Bun
-(ex: un `bunfig.toml` avec `[run] bun = true`) — testé, ça fait planter le
+(ex: un `bunfig.toml` avec `[run] bun = true`) : testé, ça fait planter le
 serveur local en silence : il accepte la connexion mais ne répond jamais à
 aucune requête, même une route qui ne fait aucun appel externe. Un vrai
 Node 22+ est la seule solution fiable trouvée.
@@ -100,7 +100,7 @@ automatiquement si c'est un `userid` numérique ou un `username` texte.
 
 Tant qu'aucun plan de vol n'a été généré sur simbrief.com (bouton "Generate
 Flight Plan"), les commandes renverront `Erreur : No flight plan on file for
-the specified user` — c'est normal, pas un bug.
+the specified user`, c'est normal, pas un bug.
 
 ## Développement local
 
@@ -121,14 +121,14 @@ bun run dev:ui        # http://localhost:5183
 
 Le dashboard a trois onglets :
 
-- **Vol** — appelle `http://localhost:8787/api/preview` (Worker) et affiche
+- **Vol** : appelle `http://localhost:8787/api/preview` (Worker) et affiche
   pour chaque commande le texte tel qu'il apparaîtrait dans le chat, un badge
   OK/Erreur, et le JSON brut SimBrief. Le point de contrôle avant chaque live.
-- **Sons** — appelle `http://localhost:4242/api/sounds` (bot, voir plus bas) :
+- **Sons** : appelle `http://localhost:4242/api/sounds` (bot, voir plus bas),
   liste les sons par rôle et permet d'en ajouter un (glisser-déposer ou
   parcourir, nom de commande, rôle ALL/SUB/MODO) sans toucher au système de
   fichiers à la main. Nécessite `bun run bot` lancé en parallèle.
-- **Annonces** — appelle `http://localhost:4242/api/announcements` : liste les
+- **Annonces** : appelle `http://localhost:4242/api/announcements`, liste les
   messages qui tournent en boucle dans le chat (voir plus bas) et permet d'en
   ajouter/supprimer directement, sans toucher au code. Nécessite aussi
   `bun run bot`.
@@ -181,7 +181,7 @@ ALL/SUB/MODO, "Ajouter". Le fichier est déposé au bon endroit et le bot
 recharge ses commandes immédiatement, sans redémarrage.
 
 **À la main** : dépose un `.mp3`/`.wav`/`.ogg` directement dans un des trois
-dossiers (non commités — souvent protégés par droits d'auteur), le nom du
+dossiers (non commités, souvent protégés par droits d'auteur), le nom du
 fichier devient la commande :
 
 ```
@@ -191,7 +191,7 @@ bot/sounds/modo/!alert.mp3       → !alert, modos + streamer
 ```
 
 Dans les deux cas : pas besoin de toucher au code pour ajouter, retirer, ou
-changer le rôle d'un son (déplace juste le fichier dans un autre dossier — le
+changer le rôle d'un son (déplace juste le fichier dans un autre dossier : le
 bot les redétecte au prochain démarrage, ou immédiatement si ajouté via le
 dashboard). Un viewer qui tape une commande au-dessus de son rôle reçoit un
 message du bot lui expliquant qu'il n'a pas la permission ; rien ne se joue.
@@ -221,7 +221,7 @@ audio). Le fond est transparent.
 ### 7. Commandes de vol (!vol, !appareil, !plandevol, !meteo)
 
 Le bot relaie automatiquement ces commandes vers le Worker et poste sa
-réponse dans le chat — aucune config supplémentaire si le Worker tourne en
+réponse dans le chat, aucune config supplémentaire si le Worker tourne en
 local (`bun run dev:worker`, ou `bun run dev` qui lance tout ensemble) :
 `bot/.env` pointe par défaut sur `WORKER_URL=http://localhost:8787`. Une fois
 le Worker déployé sur Cloudflare, change cette valeur pour l'URL publique du
@@ -234,8 +234,8 @@ que streamer tu passes toujours en `moderator`).
 
 Le bot envoie un message dans le chat toutes les `ANNOUNCE_INTERVAL_MINUTES`
 (30 par défaut, réglable dans `bot/.env`), en tournant dans la liste des
-messages configurés — pas deux fois le même de suite tant qu'il y en a
-plusieurs. Rien n'est envoyé si la liste est vide.
+messages configurés (pas deux fois le même de suite tant qu'il y en a
+plusieurs). Rien n'est envoyé si la liste est vide.
 
 **Depuis le dashboard** : onglet **Annonces** → tape un message, "Ajouter".
 Suppression en un clic sur le ✕. Pas de redémarrage du bot nécessaire, la
@@ -243,8 +243,8 @@ liste est relue à chaque envoi programmé.
 
 Un compte à rebours affiche le temps avant le prochain envoi programmé, et le
 bouton **"Tester maintenant"** envoie tout de suite le prochain message de la
-rotation dans le vrai chat, sans décaler le minutage des envois suivants —
-pratique pour vérifier le rendu sans attendre 30 minutes.
+rotation dans le vrai chat, sans décaler le minutage des envois suivants.
+Pratique pour vérifier le rendu sans attendre 30 minutes.
 
 Les messages sont stockés dans `bot/announcements.json` (non commité, voir
 `bot/announcements.example.json` pour le format si tu préfères éditer à la
@@ -273,7 +273,7 @@ bun run deploy:worker
 | Route                | Méthode | Description                                    |
 | --------------------- | ------- | ----------------------------------------------- |
 | `/`                    | GET     | Overlay à ajouter comme Browser Source dans OBS |
-| `/ws`                  | —       | WebSocket, diffuse les événements "play"        |
+| `/ws`                  | N/A     | WebSocket, diffuse les événements "play"        |
 | `/sounds/<catégorie>/<fichier>` | GET | Sert un fichier audio                    |
 | `/api/sounds`          | GET     | Liste les sons par catégorie (all/sub/modo)     |
 | `/api/sounds`          | POST    | Ajoute un son (`category`, `command`, `file` en `multipart/form-data`) |

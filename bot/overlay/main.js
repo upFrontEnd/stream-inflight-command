@@ -1,5 +1,5 @@
 // OBS injecte "OBS/x.x.x" dans le user agent de ses Browser Sources et n'y
-// applique pas la restriction autoplay — dans ce cas le bouton ne doit
+// applique pas la restriction autoplay, dans ce cas le bouton ne doit
 // jamais apparaître (il polluerait visuellement le stream).
 const isObsBrowserSource = /\bOBS\//.test(navigator.userAgent);
 const unlockEl = document.querySelector('#unlock');

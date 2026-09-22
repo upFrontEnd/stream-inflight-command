@@ -29,7 +29,7 @@ const client = new tmi.Client({
 // Cooldown global sur les sons : un seul son peut jouer toutes les
 // SOUND_COOLDOWN_MS, peu importe qui le déclenche, pour éviter le chaos audio
 // en cas de spam. Modérateurs et streamer y échappent (getUserRole ===
-// 'moderator', qui couvre aussi le broadcaster — voir permissions.js).
+// 'moderator', qui couvre aussi le broadcaster, voir permissions.js).
 const SOUND_COOLDOWN_MS = 10_000;
 let lastSoundAt = 0;
 
@@ -65,7 +65,7 @@ client.on('message', (channel, userstate, message) => {
 });
 
 // Messages qui tournent en boucle (Discord, follow, etc.), gérés depuis
-// l'onglet Annonces du dashboard — aucun redémarrage requis pour les modifier,
+// l'onglet Annonces du dashboard, aucun redémarrage requis pour les modifier,
 // la liste est relue à chaque envoi. L'index de rotation vit dans
 // announce-schedule.js pour que server.js puisse aussi savoir lequel est le
 // prochain (compte à rebours affiché à côté du bon message dans le dashboard).
