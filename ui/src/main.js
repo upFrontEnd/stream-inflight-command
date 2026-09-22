@@ -14,7 +14,7 @@ app.innerHTML = `
   <main class="app">
     <header class="app__header">
       <div>
-        <h1>Stream Inflight Command</h1>
+        <h1>Skyflyer Aviation Stream</h1>
         <p class="app__subtitle">Dashboard de gestion du stream</p>
       </div>
       <nav class="tabs" id="tabs">

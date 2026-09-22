@@ -1,8 +1,10 @@
 # stream-inflight-command
 
-Commandes de chat Twitch (`!appareil`, `!plandevol`, `!meteo`) alimentées
-automatiquement par le plan de vol SimBrief du jour, via un Cloudflare Worker,
-plus un dashboard pour vérifier les données avant le live.
+Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!appareil`,
+`!plandevol`, `!meteo`) alimentées automatiquement par le plan de vol SimBrief
+du jour, et commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
+connecté au chat — plus un dashboard pour vérifier les données et gérer les
+sons avant le live.
 
 ## Structure
 
@@ -31,7 +33,8 @@ stream-command/
     ├── .env.example           gabarit de variables locales
     ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)
     ├── index.js                connexion Twitch + boucle de commandes
-    ├── load-commands.js         scanne bot/sounds/ pour construire les commandes
+    ├── worker-commands.js       relaie !appareil/!plandevol/!meteo vers le Worker
+    ├── load-commands.js         scanne bot/sounds/ pour construire les commandes son
     ├── commands-store.js         état partagé, rechargeable sans redémarrer le bot
     ├── permissions.js            viewer / subscriber / moderator
     ├── server.js                  WebSocket + fichiers statiques + API sons (Bun natif)
@@ -43,13 +46,15 @@ stream-command/
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
-par commande, à brancher dans StreamElements avec
-`$(urlfetch https://ton-worker.workers.dev/plandevol)`.
+par commande (ex: `/plandevol`) — c'est une brique indépendante, testable
+seule via curl/navigateur.
 
-Le bot (`bot/`) est un bot Twitch 100% custom, indépendant du Worker : il se
-connecte au chat, et quand quelqu'un tape une commande son autorisée pour son
-rôle, il pousse un événement en WebSocket vers un overlay affiché dans OBS,
-qui joue le son.
+Le bot (`bot/`) est un bot Twitch 100% custom (`tmi.js`) qui gère tout côté
+chat : il relaie `!appareil`/`!plandevol`/`!meteo` vers le Worker et poste la
+réponse dans le chat, et quand quelqu'un tape une commande son autorisée pour
+son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
+OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers —
+tout passe par `bun run dev` / `bun run bot`.
 
 ## Prérequis : Node 22+
 
@@ -121,7 +126,7 @@ URLs configurables via `ui/.env.local` (voir `ui/.env.example`).
 On peut aussi vérifier une route directement, sans le dashboard :
 `http://localhost:8787/plandevol`.
 
-## Bot Twitch custom (sons déclenchés par le chat)
+## Bot Twitch custom
 
 ### 1. Créer une appli Twitch (une fois)
 
@@ -194,6 +199,15 @@ Dans OBS : **Sources → + → Browser Source** → URL `http://localhost:4242`,
 coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
 autres sources, largeur/hauteur peu importantes (rien n'est visible, juste
 audio). Le fond est transparent.
+
+### 7. Commandes de vol (!appareil, !plandevol, !meteo)
+
+Le bot relaie automatiquement ces trois commandes vers le Worker et poste sa
+réponse dans le chat — aucune config supplémentaire si le Worker tourne en
+local (`bun run dev:worker`, ou `bun run dev` qui lance tout ensemble) :
+`bot/.env` pointe par défaut sur `WORKER_URL=http://localhost:8787`. Une fois
+le Worker déployé sur Cloudflare, change cette valeur pour l'URL publique du
+Worker afin que le bot fonctionne même quand ta machine ne tourne que le bot.
 
 Teste en tapant une des commandes dans ton propre chat (sur ta chaîne, en tant
 que streamer tu passes toujours en `moderator`).

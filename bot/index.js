@@ -2,6 +2,7 @@ import tmi from 'tmi.js';
 import { reloadCommands, getCommands } from './commands-store.js';
 import { hasPermission } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
+import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
@@ -27,6 +28,14 @@ client.on('message', (channel, userstate, message) => {
   // tes propres messages doivent bien déclencher les commandes. Sans risque
   // de boucle : le bot n'envoie jamais de texte qui ressemble à une commande.
   const command = message.trim().toLowerCase();
+
+  if (isWorkerCommand(command)) {
+    fetchWorkerReply(command)
+      .then((text) => client.say(channel, text))
+      .catch((err) => console.error(`[worker] ${command} a échoué :`, err));
+    return;
+  }
+
   const sound = getCommands()[command];
   if (!sound) return;
 
