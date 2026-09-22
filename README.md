@@ -24,12 +24,16 @@ stream-command/
 │   └── src/                  dashboard de preview (JS + SCSS)
 └── bot/
     ├── .env.example           gabarit de variables locales
+    ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)
     ├── index.js                connexion Twitch + boucle de commandes
-    ├── commands.js              config : commande → son + rôle minimum
+    ├── load-commands.js         scanne bot/sounds/ pour construire les commandes
     ├── permissions.js            viewer / subscriber / moderator
     ├── server.js                  serveur WebSocket + fichiers statiques (Bun natif)
     ├── overlay/                   page à ajouter comme Browser Source dans OBS
-    └── sounds/                    fichiers audio (non commités)
+    └── sounds/                    fichiers audio, un dossier par rôle (non commités)
+        ├── all/                    accessible à tous
+        ├── sub/                    subs + modos + streamer
+        └── modo/                   modos + streamer
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
@@ -142,22 +146,21 @@ l'application. Le script affiche `TWITCH_OAUTH_TOKEN=oauth:...` à coller dans
 
 ### 4. Ajouter des sons et des commandes
 
-Dépose tes fichiers audio dans `bot/sounds/` (non commités, voir
-`bot/sounds/README.md` — souvent protégés par droits d'auteur). Puis déclare
-chaque commande dans `bot/commands.js` :
+Aucun fichier à éditer : dépose un `.mp3`/`.wav`/`.ogg` dans un des trois
+dossiers (non commités, voir `bot/sounds/README.md` — souvent protégés par
+droits d'auteur), et le nom du fichier devient la commande :
 
-```js
-export const soundCommands = {
-  '!boom': { file: 'boom.mp3', minRole: 'viewer' },
-  '!airhorn': { file: 'airhorn.mp3', minRole: 'subscriber' },
-  '!alert': { file: 'alert.mp3', minRole: 'moderator' },
-};
+```
+bot/sounds/all/!boom.mp3         → !boom, utilisable par tous
+bot/sounds/sub/!airhorn.mp3      → !airhorn, subs + modos + streamer
+bot/sounds/modo/!alert.mp3       → !alert, modos + streamer
 ```
 
-`minRole` accepte `viewer` (tout le monde), `subscriber` (subs + modos +
-streamer) ou `moderator` (modos + streamer). Un viewer qui tape une commande
-au-dessus de son rôle reçoit un message du bot lui expliquant qu'il n'a pas la
-permission ; rien ne se joue.
+Les commandes sont rechargées à chaque démarrage du bot (`bun run bot`) — pas
+besoin de toucher au code pour en ajouter, en retirer, ou changer le rôle d'un
+son (déplace juste le fichier dans un autre dossier). Un viewer qui tape une
+commande au-dessus de son rôle reçoit un message du bot lui expliquant qu'il
+n'a pas la permission ; rien ne se joue.
 
 ### 5. Lancer le bot
 

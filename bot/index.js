@@ -1,5 +1,5 @@
 import tmi from 'tmi.js';
-import { soundCommands } from './commands.js';
+import { loadSoundCommands } from './load-commands.js';
 import { hasPermission } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 
@@ -13,6 +13,9 @@ if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL) {
     'TWITCH_BOT_USERNAME, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
   );
 }
+
+const soundCommands = await loadSoundCommands();
+console.log(`${Object.keys(soundCommands).length} commandes son chargées : ${Object.keys(soundCommands).join(', ')}`);
 
 const client = new tmi.Client({
   identity: { username: BOT_USERNAME, password: OAUTH_TOKEN },
