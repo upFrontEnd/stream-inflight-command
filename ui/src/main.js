@@ -1,10 +1,11 @@
 import './style.scss';
 import { mountVolPanel } from './vol-panel.js';
 import { mountSoundsPanel } from './sounds-panel.js';
+import { PLANE_ICON, SOUND_ICON } from './icons.js';
 
 const TABS = [
-  { id: 'vol', label: '✈️ Vol', mount: mountVolPanel },
-  { id: 'sons', label: '🔊 Sons', mount: mountSoundsPanel },
+  { id: 'vol', label: 'Vol', icon: PLANE_ICON, mount: mountVolPanel },
+  { id: 'sons', label: 'Sons', icon: SOUND_ICON, mount: mountSoundsPanel },
 ];
 
 const app = document.querySelector('#app');
@@ -18,7 +19,12 @@ app.innerHTML = `
       </div>
       <nav class="tabs" id="tabs">
         ${TABS.map(
-          (t, i) => `<button class="tabs__item${i === 0 ? ' is-active' : ''}" data-tab="${t.id}" type="button">${t.label}</button>`,
+          (t, i) => `
+            <button class="tabs__item${i === 0 ? ' is-active' : ''}" data-tab="${t.id}" type="button">
+              <span class="icon-badge">${t.icon}</span>
+              ${t.label}
+            </button>
+          `,
         ).join('')}
       </nav>
     </header>

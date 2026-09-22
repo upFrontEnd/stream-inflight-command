@@ -58,12 +58,14 @@ body {
   padding: 0.25rem;
 
   &__item {
+    display: inline-flex;
+    align-items: center;
     background: transparent;
     border: none;
     color: var(--text-muted);
     font: inherit;
     font-weight: 600;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem 0.4rem 0.4rem;
     border-radius: 7px;
     cursor: pointer;
 
@@ -71,6 +73,24 @@ body {
       background: var(--accent-dim);
       color: var(--accent);
     }
+  }
+}
+
+.icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2e6fd9, #6ab6ff);
+  color: #fff;
+
+  svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
