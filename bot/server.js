@@ -16,6 +16,7 @@ export function startOverlayServer(port) {
       if (url.pathname.startsWith('/sounds/')) {
         const file = Bun.file(new URL('.' + url.pathname.slice('/sounds'.length), SOUNDS_DIR));
         if (await file.exists()) return new Response(file);
+        console.warn(`[overlay] son introuvable : ${decodeURIComponent(url.pathname)}`);
         return new Response('Not found', { status: 404 });
       }
 
@@ -28,9 +29,11 @@ export function startOverlayServer(port) {
     websocket: {
       open(ws) {
         clients.add(ws);
+        console.log(`[overlay] client connecté (${clients.size} au total)`);
       },
       close(ws) {
         clients.delete(ws);
+        console.log(`[overlay] client déconnecté (${clients.size} au total)`);
       },
       message() {},
     },
@@ -38,6 +41,7 @@ export function startOverlayServer(port) {
 }
 
 export function broadcastPlay(soundFile) {
+  console.log(`[overlay] diffusion de "${soundFile}" à ${clients.size} client(s)`);
   const payload = JSON.stringify({ type: 'play', sound: soundFile });
   for (const ws of clients) ws.send(payload);
 }

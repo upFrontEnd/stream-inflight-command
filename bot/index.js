@@ -22,9 +22,10 @@ const client = new tmi.Client({
   channels: [CHANNEL],
 });
 
-client.on('message', (channel, userstate, message, self) => {
-  if (self) return;
-
+client.on('message', (channel, userstate, message) => {
+  // Pas de filtre "self" : le compte bot est ton propre compte Twitch, donc
+  // tes propres messages doivent bien déclencher les commandes. Sans risque
+  // de boucle : le bot n'envoie jamais de texte qui ressemble à une commande.
   const command = message.trim().toLowerCase();
   const sound = soundCommands[command];
   if (!sound) return;
