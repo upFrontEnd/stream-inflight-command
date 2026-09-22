@@ -14,11 +14,8 @@ export async function fetchMetars(icaoCodes) {
   });
 }
 
-// "\n\n" sépare des paragraphes (ligne vide entre eux dans le chat, voir
-// bot/index.js sayLines) — une ligne vide entre le METAR de départ et celui
-// d'arrivée.
 export function formatMeteoText(metars) {
   return metars
     .map((m) => (m.raw ? `${m.icao}: ${m.raw}` : `${m.icao}: METAR indisponible`))
-    .join('\n\n');
+    .join(' | ');
 }

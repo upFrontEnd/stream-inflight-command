@@ -23,45 +23,12 @@ const client = new tmi.Client({
   channels: [CHANNEL],
 });
 
-// IRC/Twitch ne supporte pas les sauts de ligne dans un seul message : chaque
-// ligne devient de toute façon un message séparé, avec un petit délai entre
-// chaque envoi pour garder l'ordre et éviter le rate-limit Twitch. Deux
-// niveaux de coupure dans le texte source : "\n\n" = paragraphe (une ligne
-// vide s'affiche entre les deux), simple "\n" = juste deux messages collés
-// sans ligne vide. Twitch refuse les messages vraiment vides, donc la "ligne
-// vide" est en réalité un caractère invisible (Hangul Filler, U+3164).
-const BLANK_LINE = 'ㅤ';
-const DELAY_MS = 1200;
-
 // Cooldown global sur les sons : un seul son peut jouer toutes les
 // SOUND_COOLDOWN_MS, peu importe qui le déclenche, pour éviter le chaos audio
 // en cas de spam. Modérateurs et streamer y échappent (getUserRole ===
 // 'moderator', qui couvre aussi le broadcaster — voir permissions.js).
 const SOUND_COOLDOWN_MS = 10_000;
 let lastSoundAt = 0;
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function sayLines(channel, text) {
-  const paragraphs = text
-    .split('\n\n')
-    .map((p) => p.split('\n').filter((line) => line.trim()))
-    .filter((p) => p.length > 0);
-
-  for (const [pIndex, lines] of paragraphs.entries()) {
-    if (pIndex > 0) {
-      await wait(DELAY_MS);
-      client.say(channel, BLANK_LINE);
-      await wait(DELAY_MS);
-    }
-    for (const [lIndex, line] of lines.entries()) {
-      if (lIndex > 0) await wait(DELAY_MS);
-      client.say(channel, line);
-    }
-  }
-}
 
 client.on('message', (channel, userstate, message) => {
   // Pas de filtre "self" : le compte bot est ton propre compte Twitch, donc
@@ -71,7 +38,7 @@ client.on('message', (channel, userstate, message) => {
 
   if (isWorkerCommand(command)) {
     fetchWorkerReply(command)
-      .then((text) => sayLines(channel, text))
+      .then((text) => client.say(channel, text))
       .catch((err) => console.error(`[worker] ${command} a échoué :`, err));
     return;
   }
