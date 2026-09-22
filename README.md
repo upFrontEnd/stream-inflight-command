@@ -24,12 +24,15 @@ stream-command/
 │   ├── .env.example          gabarit de variables locales
 │   ├── index.html
 │   └── src/                  dashboard (JS + SCSS)
-│       ├── main.js             coquille + onglets (Vol / Sons / Annonces)
-│       ├── api.js               appels au Worker et au bot
-│       ├── vol-panel.js          onglet Vol : preview des commandes SimBrief
-│       ├── sounds-panel.js        onglet Sons : liste + ajout de sons
-│       ├── announcements-panel.js  onglet Annonces : liste + ajout de messages
-│       └── style.scss
+│       ├── js/
+│       │   ├── main.js             coquille + onglets (Vol / Sons / Annonces)
+│       │   ├── api.js               appels au Worker et au bot
+│       │   ├── icons.js              SVG des icônes d'onglets
+│       │   ├── vol-panel.js          onglet Vol : preview des commandes SimBrief
+│       │   ├── sounds-panel.js        onglet Sons : liste + ajout de sons
+│       │   └── announcements-panel.js  onglet Annonces : liste + ajout de messages
+│       └── scss/
+│           └── style.scss
 └── bot/
     ├── .env.example           gabarit de variables locales
     ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)

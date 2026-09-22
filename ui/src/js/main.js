@@ -1,4 +1,4 @@
-import './style.scss';
+import '../scss/style.scss';
 import { mountVolPanel } from './vol-panel.js';
 import { mountSoundsPanel } from './sounds-panel.js';
 import { mountAnnouncementsPanel } from './announcements-panel.js';
