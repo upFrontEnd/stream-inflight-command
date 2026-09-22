@@ -184,6 +184,12 @@ bot les redétecte au prochain démarrage, ou immédiatement si ajouté via le
 dashboard). Un viewer qui tape une commande au-dessus de son rôle reçoit un
 message du bot lui expliquant qu'il n'a pas la permission ; rien ne se joue.
 
+**Cooldown** : un seul son peut jouer toutes les 10 secondes, tous viewers et
+toutes commandes confondus (évite le chaos audio en cas de spam). Les
+commandes bloquées par le cooldown sont ignorées silencieusement, pas de
+message dans le chat. Modérateurs et streamer y échappent toujours. Réglable
+dans `bot/index.js` (`SOUND_COOLDOWN_MS`).
+
 ### 5. Lancer le bot
 
 ```bash

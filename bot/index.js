@@ -1,6 +1,6 @@
 import tmi from 'tmi.js';
 import { reloadCommands, getCommands } from './commands-store.js';
-import { hasPermission } from './permissions.js';
+import { hasPermission, getUserRole } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 
@@ -32,6 +32,13 @@ const client = new tmi.Client({
 // vide" est en réalité un caractère invisible (Hangul Filler, U+3164).
 const BLANK_LINE = 'ㅤ';
 const DELAY_MS = 1200;
+
+// Cooldown global sur les sons : un seul son peut jouer toutes les
+// SOUND_COOLDOWN_MS, peu importe qui le déclenche, pour éviter le chaos audio
+// en cas de spam. Modérateurs et streamer y échappent (getUserRole ===
+// 'moderator', qui couvre aussi le broadcaster — voir permissions.js).
+const SOUND_COOLDOWN_MS = 10_000;
+let lastSoundAt = 0;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -77,6 +84,13 @@ client.on('message', (channel, userstate, message) => {
     return;
   }
 
+  const isExempt = getUserRole(userstate) === 'moderator';
+  const msSinceLastSound = Date.now() - lastSoundAt;
+  if (!isExempt && msSinceLastSound < SOUND_COOLDOWN_MS) {
+    return; // cooldown actif, on ignore silencieusement pour ne pas spammer le chat en retour
+  }
+
+  lastSoundAt = Date.now();
   broadcastPlay(sound.file);
 });
 
