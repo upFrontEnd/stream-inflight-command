@@ -14,8 +14,16 @@ export async function fetchMetars(icaoCodes) {
   });
 }
 
+// fetchMetars est toujours appelé avec [origine, destination] (voir index.js)
+// : 🟩 marque la provenance, 🟥 la destination.
+const ICONS = ['🟩', '🟥'];
+
 export function formatMeteoText(metars) {
   return metars
-    .map((m) => (m.raw ? `${m.icao}: ${m.raw}` : `${m.icao}: METAR indisponible`))
+    .map((m, i) => {
+      const icon = ICONS[i] ?? '';
+      const text = m.raw ? `${m.icao}: ${m.raw}` : `${m.icao}: METAR indisponible`;
+      return icon ? `${icon} ${text}` : text;
+    })
     .join(' | ');
 }
