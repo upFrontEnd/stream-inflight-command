@@ -4,7 +4,7 @@ import { hasPermission, getUserRole } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
-import { setNextAnnounceAt } from './announce-schedule.js';
+import { setNextAnnounceAt, consumeAnnounceIndex } from './announce-schedule.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
@@ -66,15 +66,15 @@ client.on('message', (channel, userstate, message) => {
 
 // Messages qui tournent en boucle (Discord, follow, etc.), gérés depuis
 // l'onglet Annonces du dashboard — aucun redémarrage requis pour les modifier,
-// la liste est relue à chaque envoi.
-let announceIndex = 0;
-
+// la liste est relue à chaque envoi. L'index de rotation vit dans
+// announce-schedule.js pour que server.js puisse aussi savoir lequel est le
+// prochain (compte à rebours affiché à côté du bon message dans le dashboard).
 async function announceNext() {
   const list = await listAnnouncements();
   if (list.length === 0) return null;
 
-  const entry = list[announceIndex % list.length];
-  announceIndex += 1;
+  const index = consumeAnnounceIndex();
+  const entry = list[index % list.length];
   client.say(CHANNEL, entry.text);
   console.log(`[announcements] envoyé : "${entry.text}"`);
   return entry;

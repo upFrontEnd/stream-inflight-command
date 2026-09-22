@@ -1,7 +1,7 @@
 import { readdir, mkdir } from 'node:fs/promises';
 import { reloadCommands } from './commands-store.js';
 import { listAnnouncements, addAnnouncement, removeAnnouncement } from './announcements-store.js';
-import { getNextAnnounceAt } from './announce-schedule.js';
+import { getNextAnnounceAt, getAnnounceIndex } from './announce-schedule.js';
 
 const clients = new Set();
 
@@ -143,7 +143,9 @@ export function startOverlayServer(port, { onTestAnnouncement } = {}) {
       }
 
       if (url.pathname === '/api/announcements/schedule' && req.method === 'GET') {
-        return jsonResponse({ nextAt: getNextAnnounceAt() });
+        const list = await listAnnouncements();
+        const nextId = list.length > 0 ? list[getAnnounceIndex() % list.length].id : null;
+        return jsonResponse({ nextAt: getNextAnnounceAt(), nextId });
       }
 
       if (url.pathname === '/api/announcements/test' && req.method === 'POST') {

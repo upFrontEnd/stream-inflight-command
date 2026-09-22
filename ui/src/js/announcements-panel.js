@@ -18,7 +18,6 @@ export function mountAnnouncementsPanel(root) {
   root.innerHTML = `
     <div class="panel__toolbar">
       <button type="button" id="test-announce" class="button">Tester maintenant</button>
-      <span class="status">Prochain message dans <strong id="countdown">--:--</strong></span>
     </div>
 
     <form id="announce-form" class="upload-card">
@@ -37,7 +36,6 @@ export function mountAnnouncementsPanel(root) {
   `;
 
   const testBtn = root.querySelector('#test-announce');
-  const countdownEl = root.querySelector('#countdown');
   const form = root.querySelector('#announce-form');
   const input = root.querySelector('#announce-input');
   const statusEl = root.querySelector('#announce-status');
@@ -64,23 +62,40 @@ export function mountAnnouncementsPanel(root) {
     } catch (err) {
       listEl.innerHTML = `<li class="status status--error">${err instanceof Error ? err.message : 'Erreur inconnue'}</li>`;
     }
+    tickCountdown(); // ré-accroche le badge sur le bon <li>, la liste vient d'être reconstruite
   }
 
-  // Compte à rebours : re-synchronisé avec le bot toutes les 10s (léger polling
-  // local), affiché/décompté côté navigateur chaque seconde entre-temps.
+  // Compte à rebours affiché à côté du message qui sera envoyé ensuite (pas
+  // en général en haut de page) : nextAt/nextId sont re-synchronisés avec le
+  // bot toutes les 10s, le badge lui-même est décompté chaque seconde.
   let nextAt = 0;
+  let nextId = null;
 
   function tickCountdown() {
-    countdownEl.textContent = formatCountdown(nextAt - Date.now());
+    let badge = listEl.querySelector('.announce-item__countdown');
+    const target = nextId ? listEl.querySelector(`.announce-item__remove[data-id="${nextId}"]`)?.closest('.announce-item') : null;
+
+    if (!target) {
+      badge?.remove();
+      return;
+    }
+    if (!badge || badge.closest('.announce-item') !== target) {
+      badge?.remove();
+      badge = document.createElement('span');
+      badge.className = 'announce-item__countdown';
+      target.querySelector('.announce-item__text').insertAdjacentElement('afterend', badge);
+    }
+    badge.textContent = `⏱ ${formatCountdown(nextAt - Date.now())}`;
   }
 
   async function refreshSchedule() {
     try {
       const data = await fetchAnnounceSchedule();
       nextAt = data.nextAt;
+      nextId = data.nextId;
       tickCountdown();
     } catch {
-      countdownEl.textContent = '--:--';
+      // pas critique : le badge garde juste sa dernière valeur connue
     }
   }
 
