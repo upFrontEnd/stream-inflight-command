@@ -5,7 +5,7 @@ import { readdir } from 'node:fs/promises';
 // de toucher au code.
 const ROLE_BY_FOLDER = { all: 'viewer', sub: 'subscriber', modo: 'moderator' };
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg']);
-const SOUNDS_DIR = new URL('./sounds/', import.meta.url);
+const SOUNDS_DIR = new URL('../sounds/', import.meta.url);
 
 export async function loadSoundCommands() {
   const commands = {};

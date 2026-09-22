@@ -5,8 +5,8 @@ import { getNextAnnounceAt } from './announce-schedule.js';
 
 const clients = new Set();
 
-const OVERLAY_DIR = new URL('./overlay/', import.meta.url);
-const SOUNDS_DIR = new URL('./sounds/', import.meta.url);
+const OVERLAY_DIR = new URL('../overlay/', import.meta.url);
+const SOUNDS_DIR = new URL('../sounds/', import.meta.url);
 
 const CATEGORIES = ['all', 'sub', 'modo'];
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg']);

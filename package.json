@@ -9,8 +9,8 @@
     "dev:ui": "./scripts/with-node22.sh vite --config ui/vite.config.js",
     "build:ui": "./scripts/with-node22.sh vite build --config ui/vite.config.js",
     "preview:ui": "./scripts/with-node22.sh vite preview --config ui/vite.config.js",
-    "bot": "bun --env-file=bot/.env bot/index.js",
-    "bot:token": "bun --env-file=bot/.env bot/get-token.js"
+    "bot": "bun --env-file=bot/.env bot/src/index.js",
+    "bot:token": "bun --env-file=bot/.env bot/src/get-token.js"
   },
   "dependencies": {
     "tmi.js": "^1.8.5"

@@ -1,4 +1,4 @@
-const FILE_URL = new URL('./announcements.json', import.meta.url);
+const FILE_URL = new URL('../announcements.json', import.meta.url);
 
 async function readAll() {
   try {

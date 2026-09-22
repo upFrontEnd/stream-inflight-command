@@ -34,16 +34,18 @@ stream-command/
 │       └── scss/
 │           └── style.scss
 └── bot/
-    ├── .env.example           gabarit de variables locales
-    ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)
-    ├── index.js                connexion Twitch + boucle de commandes
-    ├── worker-commands.js       relaie !vol/!appareil/!plandevol/!meteo vers le Worker
-    ├── load-commands.js         scanne bot/sounds/ pour construire les commandes son
-    ├── commands-store.js         état partagé, rechargeable sans redémarrer le bot
-    ├── announcements-store.js     lecture/écriture de bot/announcements.json
-    ├── announcements.example.json gabarit (le vrai fichier n'est pas commité)
-    ├── permissions.js            viewer / subscriber / moderator
-    ├── server.js                  WebSocket + fichiers statiques + API sons/annonces (Bun natif)
+    ├── .env.example                gabarit de variables locales
+    ├── announcements.example.json  gabarit (le vrai fichier n'est pas commité)
+    ├── src/
+    │   ├── get-token.js              génère le token OAuth (Device Code Flow Twitch)
+    │   ├── index.js                  connexion Twitch + boucle de commandes
+    │   ├── worker-commands.js         relaie !vol/!appareil/!plandevol/!meteo vers le Worker
+    │   ├── load-commands.js           scanne bot/sounds/ pour construire les commandes son
+    │   ├── commands-store.js           état partagé, rechargeable sans redémarrer le bot
+    │   ├── announcements-store.js       lecture/écriture de bot/announcements.json
+    │   ├── announce-schedule.js          échéance du prochain envoi, partagée avec server.js
+    │   ├── permissions.js                viewer / subscriber / moderator
+    │   └── server.js                      WebSocket + fichiers statiques + API sons/annonces (Bun natif)
     ├── overlay/                   page à ajouter comme Browser Source dans OBS
     └── sounds/                    fichiers audio, un dossier par rôle (non commités)
         ├── all/                    accessible à tous
@@ -198,7 +200,7 @@ message du bot lui expliquant qu'il n'a pas la permission ; rien ne se joue.
 toutes commandes confondus (évite le chaos audio en cas de spam). Les
 commandes bloquées par le cooldown sont ignorées silencieusement, pas de
 message dans le chat. Modérateurs et streamer y échappent toujours. Réglable
-dans `bot/index.js` (`SOUND_COOLDOWN_MS`).
+dans `bot/src/index.js` (`SOUND_COOLDOWN_MS`).
 
 ### 5. Lancer le bot
 
