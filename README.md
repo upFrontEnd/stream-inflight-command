@@ -107,25 +107,40 @@ On peut aussi vérifier une route directement, sans le dashboard :
 
 ## Bot Twitch custom (sons déclenchés par le chat)
 
-### 1. Compte + token Twitch
+### 1. Créer une appli Twitch (une fois)
 
-Le plus simple : utilise ton propre compte Twitch comme bot (pas besoin d'un
-compte séparé pour commencer). Génère un token OAuth pour `tmi.js` sur
-[twitchapps.com/tmi](https://twitchapps.com/tmi/) (connecte-toi avec le compte
-qui doit parler dans le chat) — il donne directement une valeur au format
-`oauth:xxxxxxxx...`. Tu peux le révoquer à tout moment depuis
-[twitch.tv/settings/connections](https://www.twitch.tv/settings/connections).
+Le générateur historique twitchapps.com/tmi est mort. On utilise le flow
+officiel de Twitch (Device Code Flow), zéro service tiers :
+
+1. [dev.twitch.tv/console/apps/create](https://dev.twitch.tv/console/apps/create)
+2. Name : ce que tu veux (ex: `stream-inflight-command-bot`)
+3. OAuth Redirect URLs : `http://localhost` (placeholder, pas utilisé par ce flow)
+4. Category : `Chat Bot`
+5. Client Type : `Public`
+6. Create → copie le **Client ID** généré
 
 ### 2. Configurer
 
 ```bash
 cp bot/.env.example bot/.env
-# éditer bot/.env : TWITCH_BOT_USERNAME, TWITCH_OAUTH_TOKEN, TWITCH_CHANNEL
+# éditer bot/.env : renseigner TWITCH_CLIENT_ID, TWITCH_BOT_USERNAME, TWITCH_CHANNEL
 ```
 
-`bot/.env` n'est jamais commité.
+### 3. Générer le token OAuth
 
-### 3. Ajouter des sons et des commandes
+```bash
+bun run bot:token
+```
+
+Ouvre la page affichée, connecte-toi avec le compte qui doit parler dans le
+chat (ton propre compte marche très bien pour commencer), autorise
+l'application. Le script affiche `TWITCH_OAUTH_TOKEN=oauth:...` à coller dans
+`bot/.env`. Révocable à tout moment depuis
+[twitch.tv/settings/connections](https://www.twitch.tv/settings/connections).
+
+`bot/.env` n'est jamais commité (ni `TWITCH_CLIENT_ID`, ni le token).
+
+### 4. Ajouter des sons et des commandes
 
 Dépose tes fichiers audio dans `bot/sounds/` (non commités, voir
 `bot/sounds/README.md` — souvent protégés par droits d'auteur). Puis déclare
@@ -144,7 +159,7 @@ streamer) ou `moderator` (modos + streamer). Un viewer qui tape une commande
 au-dessus de son rôle reçoit un message du bot lui expliquant qu'il n'a pas la
 permission ; rien ne se joue.
 
-### 4. Lancer le bot
+### 5. Lancer le bot
 
 ```bash
 bun run bot
@@ -153,7 +168,7 @@ bun run bot
 Affiche `Overlay sons dispo sur http://localhost:4242` une fois connecté au
 chat.
 
-### 5. Ajouter l'overlay dans OBS
+### 6. Ajouter l'overlay dans OBS
 
 Dans OBS : **Sources → + → Browser Source** → URL `http://localhost:4242`,
 coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
