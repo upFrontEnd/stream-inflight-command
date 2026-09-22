@@ -1,11 +1,10 @@
 import './style.scss';
-import { fetchPreview } from './api.js';
+import { mountVolPanel } from './vol-panel.js';
+import { mountSoundsPanel } from './sounds-panel.js';
 
-const COMMANDS = [
-  { key: 'vol', label: '!vol' },
-  { key: 'appareil', label: '!appareil' },
-  { key: 'plandevol', label: '!plandevol' },
-  { key: 'meteo', label: '!meteo' },
+const TABS = [
+  { id: 'vol', label: '✈️ Vol', mount: mountVolPanel },
+  { id: 'sons', label: '🔊 Sons', mount: mountSoundsPanel },
 ];
 
 const app = document.querySelector('#app');
@@ -13,63 +12,42 @@ const app = document.querySelector('#app');
 app.innerHTML = `
   <main class="app">
     <header class="app__header">
-      <h1>Stream Inflight Command</h1>
-      <p class="app__subtitle">Prévisualise les commandes avant le live</p>
-      <button id="refresh" class="button" type="button">Rafraîchir</button>
-      <span id="status" class="status"></span>
+      <div>
+        <h1>Stream Inflight Command</h1>
+        <p class="app__subtitle">Dashboard de gestion du stream</p>
+      </div>
+      <nav class="tabs" id="tabs">
+        ${TABS.map(
+          (t, i) => `<button class="tabs__item${i === 0 ? ' is-active' : ''}" data-tab="${t.id}" type="button">${t.label}</button>`,
+        ).join('')}
+      </nav>
     </header>
-    <section id="cards" class="cards"></section>
-    <details class="raw-panel">
-      <summary>Données brutes SimBrief</summary>
-      <pre id="raw-json"></pre>
-    </details>
+    ${TABS.map((t, i) => `<section class="panel" data-panel="${t.id}"${i === 0 ? '' : ' hidden'}></section>`).join('')}
   </main>
 `;
 
-const cardsEl = document.querySelector('#cards');
-const statusEl = document.querySelector('#status');
-const refreshBtn = document.querySelector('#refresh');
-const rawJsonEl = document.querySelector('#raw-json');
+const tabsEl = document.querySelector('#tabs');
+const mounted = new Set();
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach((el) => {
+    el.hidden = el.dataset.panel !== id;
+  });
+  tabsEl.querySelectorAll('.tabs__item').forEach((el) => {
+    el.classList.toggle('is-active', el.dataset.tab === id);
+  });
 
-function renderCards(data) {
-  cardsEl.innerHTML = COMMANDS.map(({ key, label }) => {
-    const entry = data[key];
-    const stateClass = entry.ok ? 'card--ok' : 'card--error';
-    return `
-      <article class="card ${stateClass}">
-        <div class="card__header">
-          <span class="card__command">${label}</span>
-          <span class="card__badge">${entry.ok ? 'OK' : 'Erreur'}</span>
-        </div>
-        <p class="card__text">${escapeHtml(entry.text)}</p>
-      </article>
-    `;
-  }).join('');
-
-  rawJsonEl.textContent = JSON.stringify(data.raw, null, 2);
-}
-
-async function load() {
-  statusEl.textContent = 'Chargement…';
-  statusEl.className = 'status';
-  refreshBtn.disabled = true;
-  try {
-    const data = await fetchPreview();
-    renderCards(data);
-    statusEl.textContent = `Mis à jour à ${new Date().toLocaleTimeString('fr-FR')}`;
-  } catch (err) {
-    statusEl.textContent = err instanceof Error ? err.message : 'Erreur inconnue';
-    statusEl.className = 'status status--error';
-  } finally {
-    refreshBtn.disabled = false;
+  if (!mounted.has(id)) {
+    const tab = TABS.find((t) => t.id === id);
+    tab.mount(document.querySelector(`.panel[data-panel="${id}"]`));
+    mounted.add(id);
   }
 }
 
-refreshBtn.addEventListener('click', load);
-load();
+tabsEl.addEventListener('click', (event) => {
+  const btn = event.target.closest('.tabs__item');
+  if (!btn) return;
+  showTab(btn.dataset.tab);
+});
+
+showTab(TABS[0].id);

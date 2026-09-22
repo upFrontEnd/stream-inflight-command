@@ -1,5 +1,5 @@
 import tmi from 'tmi.js';
-import { loadSoundCommands } from './load-commands.js';
+import { reloadCommands, getCommands } from './commands-store.js';
 import { hasPermission } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 
@@ -14,8 +14,8 @@ if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL) {
   );
 }
 
-const soundCommands = await loadSoundCommands();
-console.log(`${Object.keys(soundCommands).length} commandes son chargées : ${Object.keys(soundCommands).join(', ')}`);
+const initialCommands = await reloadCommands();
+console.log(`${Object.keys(initialCommands).length} commandes son chargées : ${Object.keys(initialCommands).join(', ')}`);
 
 const client = new tmi.Client({
   identity: { username: BOT_USERNAME, password: OAUTH_TOKEN },
@@ -27,7 +27,7 @@ client.on('message', (channel, userstate, message) => {
   // tes propres messages doivent bien déclencher les commandes. Sans risque
   // de boucle : le bot n'envoie jamais de texte qui ressemble à une commande.
   const command = message.trim().toLowerCase();
-  const sound = soundCommands[command];
+  const sound = getCommands()[command];
   if (!sound) return;
 
   if (!hasPermission(userstate, sound.minRole)) {
@@ -41,3 +41,4 @@ client.on('message', (channel, userstate, message) => {
 await client.connect();
 startOverlayServer(OVERLAY_PORT);
 console.log(`Overlay sons dispo sur http://localhost:${OVERLAY_PORT} (à ajouter comme Browser Source dans OBS)`);
+console.log(`API de gestion des sons dispo sur http://localhost:${OVERLAY_PORT}/api/sounds`);

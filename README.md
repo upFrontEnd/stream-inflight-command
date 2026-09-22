@@ -21,14 +21,20 @@ stream-command/
 │   ├── vite.config.js        config Vite (root fixé sur ce dossier, port 5183)
 │   ├── .env.example          gabarit de variables locales
 │   ├── index.html
-│   └── src/                  dashboard de preview (JS + SCSS)
+│   └── src/                  dashboard (JS + SCSS)
+│       ├── main.js             coquille + onglets (Vol / Sons)
+│       ├── api.js               appels au Worker et au bot
+│       ├── vol-panel.js          onglet Vol : preview des commandes SimBrief
+│       ├── sounds-panel.js        onglet Sons : liste + ajout de sons
+│       └── style.scss
 └── bot/
     ├── .env.example           gabarit de variables locales
     ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)
     ├── index.js                connexion Twitch + boucle de commandes
     ├── load-commands.js         scanne bot/sounds/ pour construire les commandes
+    ├── commands-store.js         état partagé, rechargeable sans redémarrer le bot
     ├── permissions.js            viewer / subscriber / moderator
-    ├── server.js                  serveur WebSocket + fichiers statiques (Bun natif)
+    ├── server.js                  WebSocket + fichiers statiques + API sons (Bun natif)
     ├── overlay/                   page à ajouter comme Browser Source dans OBS
     └── sounds/                    fichiers audio, un dossier par rôle (non commités)
         ├── all/                    accessible à tous
@@ -100,11 +106,17 @@ bun run dev:worker   # http://localhost:8787
 bun run dev:ui        # http://localhost:5183
 ```
 
-Le dashboard (`ui/`) appelle `http://localhost:8787/api/preview` par défaut
-(configurable via `ui/.env.local`, voir `ui/.env.example`) et affiche pour
-chaque commande : le texte tel qu'il apparaîtrait dans le chat, un badge
-OK/Erreur, et un panneau dépliable avec le JSON brut SimBrief — le point de
-contrôle avant chaque live.
+Le dashboard a deux onglets :
+
+- **Vol** — appelle `http://localhost:8787/api/preview` (Worker) et affiche
+  pour chaque commande le texte tel qu'il apparaîtrait dans le chat, un badge
+  OK/Erreur, et le JSON brut SimBrief. Le point de contrôle avant chaque live.
+- **Sons** — appelle `http://localhost:4242/api/sounds` (bot, voir plus bas) :
+  liste les sons par rôle et permet d'en ajouter un (glisser-déposer ou
+  parcourir, nom de commande, rôle ALL/SUB/MODO) sans toucher au système de
+  fichiers à la main. Nécessite `bun run bot` lancé en parallèle.
+
+URLs configurables via `ui/.env.local` (voir `ui/.env.example`).
 
 On peut aussi vérifier une route directement, sans le dashboard :
 `http://localhost:8787/vol`.
@@ -146,9 +158,14 @@ l'application. Le script affiche `TWITCH_OAUTH_TOKEN=oauth:...` à coller dans
 
 ### 4. Ajouter des sons et des commandes
 
-Aucun fichier à éditer : dépose un `.mp3`/`.wav`/`.ogg` dans un des trois
-dossiers (non commités, voir `bot/sounds/README.md` — souvent protégés par
-droits d'auteur), et le nom du fichier devient la commande :
+**Depuis le dashboard** (le plus simple) : `bun run bot` + `bun run dev:ui`,
+onglet **Sons** → glisse un fichier audio, donne un nom de commande, choisit
+ALL/SUB/MODO, "Ajouter". Le fichier est déposé au bon endroit et le bot
+recharge ses commandes immédiatement, sans redémarrage.
+
+**À la main** : dépose un `.mp3`/`.wav`/`.ogg` directement dans un des trois
+dossiers (non commités — souvent protégés par droits d'auteur), le nom du
+fichier devient la commande :
 
 ```
 bot/sounds/all/!boom.mp3         → !boom, utilisable par tous
@@ -156,11 +173,11 @@ bot/sounds/sub/!airhorn.mp3      → !airhorn, subs + modos + streamer
 bot/sounds/modo/!alert.mp3       → !alert, modos + streamer
 ```
 
-Les commandes sont rechargées à chaque démarrage du bot (`bun run bot`) — pas
-besoin de toucher au code pour en ajouter, en retirer, ou changer le rôle d'un
-son (déplace juste le fichier dans un autre dossier). Un viewer qui tape une
-commande au-dessus de son rôle reçoit un message du bot lui expliquant qu'il
-n'a pas la permission ; rien ne se joue.
+Dans les deux cas : pas besoin de toucher au code pour ajouter, retirer, ou
+changer le rôle d'un son (déplace juste le fichier dans un autre dossier — le
+bot les redétecte au prochain démarrage, ou immédiatement si ajouté via le
+dashboard). Un viewer qui tape une commande au-dessus de son rôle reçoit un
+message du bot lui expliquant qu'il n'a pas la permission ; rien ne se joue.
 
 ### 5. Lancer le bot
 
@@ -198,6 +215,16 @@ bun run deploy:worker
 | `/plandevol`     | Résumé : altitude de croisière, temps, carburant |
 | `/meteo`         | METAR brut départ/arrivée (aviationweather.gov) |
 | `/api/preview`   | JSON structuré : les 4 commandes + données brutes |
+
+## Routes exposées par le bot (`http://localhost:4242`)
+
+| Route                | Méthode | Description                                    |
+| --------------------- | ------- | ----------------------------------------------- |
+| `/`                    | GET     | Overlay à ajouter comme Browser Source dans OBS |
+| `/ws`                  | —       | WebSocket, diffuse les événements "play"        |
+| `/sounds/<catégorie>/<fichier>` | GET | Sert un fichier audio                    |
+| `/api/sounds`          | GET     | Liste les sons par catégorie (all/sub/modo)     |
+| `/api/sounds`          | POST    | Ajoute un son (`category`, `command`, `file` en `multipart/form-data`) |
 
 ## À vérifier / limites connues
 
