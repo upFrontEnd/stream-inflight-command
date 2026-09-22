@@ -10,47 +10,47 @@ sons avant le live.
 
 ```
 stream-command/
-├── package.json          dépendances (wrangler, vite, sass)
-├── .nvmrc                 impose Node 22+ (requis par wrangler)
+├── package.json                        dépendances (wrangler, vite, sass)
+├── .nvmrc                              impose Node 22+ (requis par wrangler)
 ├── worker/
-│   ├── wrangler.toml       config Cloudflare Worker
-│   ├── .dev.vars.example   gabarit de variables locales
-│   ├── index.js            router : une route par commande
-│   ├── simbrief.js          appel + parsing de l'API SimBrief
-│   ├── metar.js             appel + parsing de l'API METAR (aviationweather.gov)
-│   └── commands.js           formatage du texte renvoyé par chaque commande
+│   ├── wrangler.toml                   config Cloudflare Worker
+│   ├── .dev.vars.example               gabarit de variables locales
+│   ├── index.js                        router : une route par commande
+│   ├── simbrief.js                     appel + parsing de l'API SimBrief
+│   ├── metar.js                        appel + parsing de l'API METAR (aviationweather.gov)
+│   └── commands.js                     formatage du texte renvoyé par chaque commande
 ├── ui/
-│   ├── vite.config.js        config Vite (root fixé sur ce dossier, port 5183)
-│   ├── .env.example          gabarit de variables locales
+│   ├── vite.config.js                  config Vite (root fixé sur ce dossier, port 5183)
+│   ├── .env.example                    gabarit de variables locales
 │   ├── index.html
-│   └── src/                  dashboard (JS + SCSS)
+│   └── src/                            dashboard (JS + SCSS)
 │       ├── js/
-│       │   ├── main.js             coquille + onglets (Vol / Sons / Annonces)
-│       │   ├── api.js               appels au Worker et au bot
-│       │   ├── icons.js              SVG des icônes d'onglets
-│       │   ├── vol-panel.js          onglet Vol : preview des commandes SimBrief
-│       │   ├── sounds-panel.js        onglet Sons : liste + ajout de sons
+│       │   ├── main.js                 coquille + onglets (Vol / Sons / Annonces)
+│       │   ├── api.js                  appels au Worker et au bot
+│       │   ├── icons.js                SVG des icônes d'onglets
+│       │   ├── vol-panel.js            onglet Vol : preview des commandes SimBrief
+│       │   ├── sounds-panel.js         onglet Sons : liste + ajout de sons
 │       │   └── announcements-panel.js  onglet Annonces : liste + ajout de messages
 │       └── scss/
 │           └── style.scss
 └── bot/
-    ├── .env.example                gabarit de variables locales
-    ├── announcements.example.json  gabarit (le vrai fichier n'est pas commité)
+    ├── .env.example                    gabarit de variables locales
+    ├── announcements.example.json      gabarit (le vrai fichier n'est pas commité)
     ├── src/
-    │   ├── get-token.js              génère le token OAuth (Device Code Flow Twitch)
-    │   ├── index.js                  connexion Twitch + boucle de commandes
-    │   ├── worker-commands.js         relaie !vol/!appareil/!plandevol/!meteo vers le Worker
-    │   ├── load-commands.js           scanne bot/sounds/ pour construire les commandes son
+    │   ├── get-token.js                génère le token OAuth (Device Code Flow Twitch)
+    │   ├── index.js                    connexion Twitch + boucle de commandes
+    │   ├── worker-commands.js          relaie !vol/!appareil/!plandevol/!meteo vers le Worker
+    │   ├── load-commands.js            scanne bot/sounds/ pour construire les commandes son
     │   ├── commands-store.js           état partagé, rechargeable sans redémarrer le bot
-    │   ├── announcements-store.js       lecture/écriture de bot/announcements.json
-    │   ├── announce-schedule.js          échéance du prochain envoi, partagée avec server.js
-    │   ├── permissions.js                viewer / subscriber / moderator
-    │   └── server.js                      WebSocket + fichiers statiques + API sons/annonces (Bun natif)
-    ├── overlay/                   page à ajouter comme Browser Source dans OBS
-    └── sounds/                    fichiers audio, un dossier par rôle (non commités)
-        ├── all/                    accessible à tous
-        ├── sub/                    subs + modos + streamer
-        └── modo/                   modos + streamer
+    │   ├── announcements-store.js      lecture/écriture de bot/announcements.json
+    │   ├── announce-schedule.js        échéance du prochain envoi, partagée avec server.js
+    │   ├── permissions.js              viewer / subscriber / moderator
+    │   └── server.js                   WebSocket + fichiers statiques + API sons/annonces (Bun natif)
+    ├── overlay/                        page à ajouter comme Browser Source dans OBS
+    └── sounds/                         fichiers audio, un dossier par rôle (non commités)
+        ├── all/                        accessible à tous
+        ├── sub/                        subs + modos + streamer
+        └── modo/                       modos + streamer
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
