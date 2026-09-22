@@ -14,8 +14,11 @@ export async function fetchMetars(icaoCodes) {
   });
 }
 
+// \n sépare des paragraphes destinés à devenir des messages de chat distincts
+// (bot/index.js les envoie un par un) — impossible d'avoir un vrai saut de
+// ligne à l'intérieur d'un seul message IRC/Twitch.
 export function formatMeteoText(metars) {
   return metars
     .map((m) => (m.raw ? `${m.icao}: ${m.raw}` : `${m.icao}: METAR indisponible`))
-    .join(' | ');
+    .join('\n');
 }
