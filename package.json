@@ -1,0 +1,9 @@
+{
+  "name": "stream-inflight-command",
+  "private": true,
+  "workspaces": ["worker", "ui"],
+  "scripts": {
+    "dev:worker": "bun --cwd worker run dev",
+    "dev:ui": "bun --cwd ui run dev"
+  }
+}

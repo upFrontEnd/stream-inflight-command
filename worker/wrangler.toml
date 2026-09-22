@@ -1,0 +1,7 @@
+name = "stream-inflight-command"
+main = "src/index.ts"
+compatibility_date = "2026-09-22"
+
+# SIMBRIEF_USERNAME n'est pas défini ici pour ne pas committer d'identifiant.
+# - En local : worker/.dev.vars (copier .dev.vars.example)
+# - En prod  : `bunx wrangler secret put SIMBRIEF_USERNAME`

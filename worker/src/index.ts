@@ -1,0 +1,88 @@
+import { fetchSimbriefData } from './simbrief';
+import { fetchMetars, formatMeteoText } from './metar';
+import { formatVol, formatAppareil, formatPlandevol } from './commands';
+import type { CommandPreview, Env, PreviewResponse } from './types';
+
+const CORS_HEADERS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, OPTIONS',
+};
+
+function textResponse(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: { 'content-type': 'text/plain; charset=utf-8', ...CORS_HEADERS },
+  });
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', ...CORS_HEADERS },
+  });
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : 'Erreur inconnue';
+}
+
+async function buildPreview(env: Env): Promise<PreviewResponse> {
+  let simbrief;
+  try {
+    simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
+  } catch (err) {
+    const failed: CommandPreview = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+    return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, raw: null };
+  }
+
+  const vol: CommandPreview = { ok: true, text: formatVol(simbrief) };
+  const appareil: CommandPreview = { ok: true, text: formatAppareil(simbrief) };
+  const plandevol: CommandPreview = { ok: true, text: formatPlandevol(simbrief) };
+
+  let meteo: CommandPreview;
+  try {
+    const metars = await fetchMetars([simbrief.origin.icao, simbrief.destination.icao]);
+    meteo = { ok: true, text: formatMeteoText(metars) };
+  } catch (err) {
+    meteo = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+  }
+
+  return { vol, appareil, plandevol, meteo, raw: simbrief };
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: CORS_HEADERS });
+    }
+
+    if (url.pathname === '/api/preview') {
+      return jsonResponse(await buildPreview(env));
+    }
+
+    if (!env.SIMBRIEF_USERNAME) {
+      return textResponse('Erreur : SIMBRIEF_USERNAME non configuré');
+    }
+
+    try {
+      if (url.pathname === '/vol' || url.pathname === '/appareil' || url.pathname === '/plandevol') {
+        const simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
+        if (url.pathname === '/vol') return textResponse(formatVol(simbrief));
+        if (url.pathname === '/appareil') return textResponse(formatAppareil(simbrief));
+        return textResponse(formatPlandevol(simbrief));
+      }
+
+      if (url.pathname === '/meteo') {
+        const simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
+        const metars = await fetchMetars([simbrief.origin.icao, simbrief.destination.icao]);
+        return textResponse(formatMeteoText(metars));
+      }
+    } catch (err) {
+      return textResponse(`Erreur : ${errorMessage(err)}`);
+    }
+
+    return textResponse('Not found', 404);
+  },
+};
