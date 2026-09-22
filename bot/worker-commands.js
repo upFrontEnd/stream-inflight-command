@@ -1,6 +1,7 @@
 const WORKER_URL = process.env.WORKER_URL ?? 'http://localhost:8787';
 
 const ROUTES = {
+  '!vol': '/vol',
   '!appareil': '/appareil',
   '!plandevol': '/plandevol',
   '!meteo': '/meteo',

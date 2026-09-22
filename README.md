@@ -1,6 +1,6 @@
 # stream-inflight-command
 
-Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!appareil`,
+Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!vol`, `!appareil`,
 `!plandevol`, `!meteo`) alimentées automatiquement par le plan de vol SimBrief
 du jour, et commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
 connecté au chat — plus un dashboard pour vérifier les données et gérer les
@@ -33,7 +33,7 @@ stream-command/
     ├── .env.example           gabarit de variables locales
     ├── get-token.js            génère le token OAuth (Device Code Flow Twitch)
     ├── index.js                connexion Twitch + boucle de commandes
-    ├── worker-commands.js       relaie !appareil/!plandevol/!meteo vers le Worker
+    ├── worker-commands.js       relaie !vol/!appareil/!plandevol/!meteo vers le Worker
     ├── load-commands.js         scanne bot/sounds/ pour construire les commandes son
     ├── commands-store.js         état partagé, rechargeable sans redémarrer le bot
     ├── permissions.js            viewer / subscriber / moderator
@@ -50,7 +50,7 @@ par commande (ex: `/plandevol`) — c'est une brique indépendante, testable
 seule via curl/navigateur.
 
 Le bot (`bot/`) est un bot Twitch 100% custom (`tmi.js`) qui gère tout côté
-chat : il relaie `!appareil`/`!plandevol`/`!meteo` vers le Worker et poste la
+chat : il relaie `!vol`/`!appareil`/`!plandevol`/`!meteo` vers le Worker et poste la
 réponse dans le chat, et quand quelqu'un tape une commande son autorisée pour
 son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
 OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers —
@@ -206,9 +206,9 @@ coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
 autres sources, largeur/hauteur peu importantes (rien n'est visible, juste
 audio). Le fond est transparent.
 
-### 7. Commandes de vol (!appareil, !plandevol, !meteo)
+### 7. Commandes de vol (!vol, !appareil, !plandevol, !meteo)
 
-Le bot relaie automatiquement ces trois commandes vers le Worker et poste sa
+Le bot relaie automatiquement ces commandes vers le Worker et poste sa
 réponse dans le chat — aucune config supplémentaire si le Worker tourne en
 local (`bun run dev:worker`, ou `bun run dev` qui lance tout ensemble) :
 `bot/.env` pointe par défaut sur `WORKER_URL=http://localhost:8787`. Une fois
@@ -230,10 +230,11 @@ bun run deploy:worker
 
 | Route           | Description                                  |
 | ---------------- | --------------------------------------------- |
+| `/vol`           | Résumé : FL, durée, carburant                 |
 | `/appareil`      | Type d'appareil, immatriculation              |
-| `/plandevol`     | Résumé (FL, durée, carburant) + route détaillée (départ/arrivée, route, distance) |
+| `/plandevol`     | Route détaillée : départ/arrivée, route, distance |
 | `/meteo`         | METAR brut départ/arrivée (aviationweather.gov) |
-| `/api/preview`   | JSON structuré : les 3 commandes + données brutes |
+| `/api/preview`   | JSON structuré : les 4 commandes + données brutes |
 
 ## Routes exposées par le bot (`http://localhost:4242`)
 

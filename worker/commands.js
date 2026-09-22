@@ -1,21 +1,14 @@
 export function formatVol(d) {
-  return `✈️ ${d.origin.icao} (${d.origin.name}) → ${d.destination.icao} (${d.destination.name}) | Route: ${d.route || 'directe'} | ${d.routeDistanceNm} nm`;
+  const fl = Math.round(Number(d.cruiseAltitudeFt) / 100);
+  return `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
 }
 
 export function formatAppareil(d) {
   return `🛩️ ${d.aircraft.name} (${d.aircraft.icao}) — immat. ${d.aircraft.reg}`;
 }
 
-// Espace insécable (U+00A0), pas un espace normal : le rendu HTML du chat
-// Twitch fusionne les espaces classiques consécutifs en un seul, ce qui
-// annulerait l'écart visuel recherché ici. Un seul message de chat (Twitch ne
-// supporte aucun vrai retour à la ligne).
-const SECTION_GAP = '    ';
-
 export function formatPlandevol(d) {
-  const fl = Math.round(Number(d.cruiseAltitudeFt) / 100);
-  const resume = `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
-  return `${resume}${SECTION_GAP}${formatVol(d)}`;
+  return `✈️ ${d.origin.icao} (${d.origin.name}) → ${d.destination.icao} (${d.destination.name}) | Route: ${d.route || 'directe'} | ${d.routeDistanceNm} nm`;
 }
 
 function formatDuration(seconds) {

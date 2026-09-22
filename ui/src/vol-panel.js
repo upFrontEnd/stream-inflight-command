@@ -1,6 +1,7 @@
 import { fetchPreview } from './api.js';
 
 const COMMANDS = [
+  { key: 'vol', label: '!vol' },
   { key: 'appareil', label: '!appareil' },
   { key: 'plandevol', label: '!plandevol' },
   { key: 'meteo', label: '!meteo' },

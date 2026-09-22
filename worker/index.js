@@ -1,6 +1,6 @@
 import { fetchSimbriefData } from './simbrief.js';
 import { fetchMetars, formatMeteoText } from './metar.js';
-import { formatAppareil, formatPlandevol } from './commands.js';
+import { formatVol, formatAppareil, formatPlandevol } from './commands.js';
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
@@ -31,9 +31,10 @@ async function buildPreview(env) {
     simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
   } catch (err) {
     const failed = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
-    return { appareil: failed, plandevol: failed, meteo: failed, raw: null };
+    return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, raw: null };
   }
 
+  const vol = { ok: true, text: formatVol(simbrief) };
   const appareil = { ok: true, text: formatAppareil(simbrief) };
   const plandevol = { ok: true, text: formatPlandevol(simbrief) };
 
@@ -45,7 +46,7 @@ async function buildPreview(env) {
     meteo = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
   }
 
-  return { appareil, plandevol, meteo, raw: simbrief };
+  return { vol, appareil, plandevol, meteo, raw: simbrief };
 }
 
 export default {
@@ -65,8 +66,9 @@ export default {
     }
 
     try {
-      if (url.pathname === '/appareil' || url.pathname === '/plandevol') {
+      if (url.pathname === '/vol' || url.pathname === '/appareil' || url.pathname === '/plandevol') {
         const simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
+        if (url.pathname === '/vol') return textResponse(formatVol(simbrief));
         if (url.pathname === '/appareil') return textResponse(formatAppareil(simbrief));
         return textResponse(formatPlandevol(simbrief));
       }
