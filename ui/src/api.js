@@ -30,3 +30,32 @@ export async function uploadSound({ category, command, file }) {
   }
   return data;
 }
+
+export async function fetchAnnouncements() {
+  const res = await fetch(`${BOT_URL}/api/announcements`);
+  if (!res.ok) {
+    throw new Error(`Le bot a répondu ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function addAnnouncement(text) {
+  const res = await fetch(`${BOT_URL}/api/announcements`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
+  }
+  return data;
+}
+
+export async function deleteAnnouncement(id) {
+  const res = await fetch(`${BOT_URL}/api/announcements/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!res.ok) {
+    throw new Error(`Le bot a répondu ${res.status}`);
+  }
+  return res.json();
+}

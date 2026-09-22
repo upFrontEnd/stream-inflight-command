@@ -1,11 +1,13 @@
 import './style.scss';
 import { mountVolPanel } from './vol-panel.js';
 import { mountSoundsPanel } from './sounds-panel.js';
-import { PLANE_ICON, SOUND_ICON } from './icons.js';
+import { mountAnnouncementsPanel } from './announcements-panel.js';
+import { PLANE_ICON, SOUND_ICON, MESSAGE_ICON } from './icons.js';
 
 const TABS = [
   { id: 'vol', label: 'Vol', icon: PLANE_ICON, mount: mountVolPanel },
   { id: 'sons', label: 'Sons', icon: SOUND_ICON, mount: mountSoundsPanel },
+  { id: 'annonces', label: 'Annonces', icon: MESSAGE_ICON, mount: mountAnnouncementsPanel },
 ];
 
 const app = document.querySelector('#app');

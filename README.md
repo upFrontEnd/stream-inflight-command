@@ -24,10 +24,11 @@ stream-command/
 │   ├── .env.example          gabarit de variables locales
 │   ├── index.html
 │   └── src/                  dashboard (JS + SCSS)
-│       ├── main.js             coquille + onglets (Vol / Sons)
+│       ├── main.js             coquille + onglets (Vol / Sons / Annonces)
 │       ├── api.js               appels au Worker et au bot
 │       ├── vol-panel.js          onglet Vol : preview des commandes SimBrief
 │       ├── sounds-panel.js        onglet Sons : liste + ajout de sons
+│       ├── announcements-panel.js  onglet Annonces : liste + ajout de messages
 │       └── style.scss
 └── bot/
     ├── .env.example           gabarit de variables locales
@@ -36,8 +37,10 @@ stream-command/
     ├── worker-commands.js       relaie !vol/!appareil/!plandevol/!meteo vers le Worker
     ├── load-commands.js         scanne bot/sounds/ pour construire les commandes son
     ├── commands-store.js         état partagé, rechargeable sans redémarrer le bot
+    ├── announcements-store.js     lecture/écriture de bot/announcements.json
+    ├── announcements.example.json gabarit (le vrai fichier n'est pas commité)
     ├── permissions.js            viewer / subscriber / moderator
-    ├── server.js                  WebSocket + fichiers statiques + API sons (Bun natif)
+    ├── server.js                  WebSocket + fichiers statiques + API sons/annonces (Bun natif)
     ├── overlay/                   page à ajouter comme Browser Source dans OBS
     └── sounds/                    fichiers audio, un dossier par rôle (non commités)
         ├── all/                    accessible à tous
@@ -111,7 +114,7 @@ bun run dev:worker   # http://localhost:8787
 bun run dev:ui        # http://localhost:5183
 ```
 
-Le dashboard a deux onglets :
+Le dashboard a trois onglets :
 
 - **Vol** — appelle `http://localhost:8787/api/preview` (Worker) et affiche
   pour chaque commande le texte tel qu'il apparaîtrait dans le chat, un badge
@@ -120,6 +123,10 @@ Le dashboard a deux onglets :
   liste les sons par rôle et permet d'en ajouter un (glisser-déposer ou
   parcourir, nom de commande, rôle ALL/SUB/MODO) sans toucher au système de
   fichiers à la main. Nécessite `bun run bot` lancé en parallèle.
+- **Annonces** — appelle `http://localhost:4242/api/announcements` : liste les
+  messages qui tournent en boucle dans le chat (voir plus bas) et permet d'en
+  ajouter/supprimer directement, sans toucher au code. Nécessite aussi
+  `bun run bot`.
 
 URLs configurables via `ui/.env.local` (voir `ui/.env.example`).
 
@@ -218,6 +225,21 @@ Worker afin que le bot fonctionne même quand ta machine ne tourne que le bot.
 Teste en tapant une des commandes dans ton propre chat (sur ta chaîne, en tant
 que streamer tu passes toujours en `moderator`).
 
+### 8. Messages d'annonce automatiques
+
+Le bot envoie un message dans le chat toutes les `ANNOUNCE_INTERVAL_MINUTES`
+(30 par défaut, réglable dans `bot/.env`), en tournant dans la liste des
+messages configurés — pas deux fois le même de suite tant qu'il y en a
+plusieurs. Rien n'est envoyé si la liste est vide.
+
+**Depuis le dashboard** : onglet **Annonces** → tape un message, "Ajouter".
+Suppression en un clic sur le ✕. Pas de redémarrage du bot nécessaire, la
+liste est relue à chaque envoi programmé.
+
+Les messages sont stockés dans `bot/announcements.json` (non commité, voir
+`bot/announcements.example.json` pour le format si tu préfères éditer à la
+main).
+
 ## Déploiement
 
 ```bash
@@ -245,6 +267,9 @@ bun run deploy:worker
 | `/sounds/<catégorie>/<fichier>` | GET | Sert un fichier audio                    |
 | `/api/sounds`          | GET     | Liste les sons par catégorie (all/sub/modo)     |
 | `/api/sounds`          | POST    | Ajoute un son (`category`, `command`, `file` en `multipart/form-data`) |
+| `/api/announcements`   | GET     | Liste les messages d'annonce                    |
+| `/api/announcements`   | POST    | Ajoute un message (`{ "text": "..." }` en JSON) |
+| `/api/announcements/<id>` | DELETE | Supprime un message                          |
 
 ## À vérifier / limites connues
 

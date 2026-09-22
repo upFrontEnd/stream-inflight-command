@@ -1,5 +1,6 @@
 import { readdir, mkdir } from 'node:fs/promises';
 import { reloadCommands } from './commands-store.js';
+import { listAnnouncements, addAnnouncement, removeAnnouncement } from './announcements-store.js';
 
 const clients = new Set();
 
@@ -12,8 +13,10 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 Mo
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
 };
+
+const MAX_ANNOUNCEMENT_LENGTH = 450; // limite Twitch (500) moins de la marge
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -85,6 +88,22 @@ async function handleUpload(req) {
   return jsonResponse({ ok: true, command, category, file: `${command}${ext}` });
 }
 
+async function handleAddAnnouncement(req) {
+  const body = await req.json().catch(() => null);
+  const text = typeof body?.text === 'string' ? body.text.trim() : '';
+
+  if (!text) {
+    return jsonResponse({ error: 'text manquant' }, 400);
+  }
+  if (text.length > MAX_ANNOUNCEMENT_LENGTH) {
+    return jsonResponse({ error: `message trop long (max ${MAX_ANNOUNCEMENT_LENGTH} caractères)` }, 400);
+  }
+
+  const entry = await addAnnouncement(text);
+  console.log(`[announcements] ajouté : "${text}"`);
+  return jsonResponse(entry);
+}
+
 export function startOverlayServer(port) {
   return Bun.serve({
     port,
@@ -106,6 +125,26 @@ export function startOverlayServer(port) {
           console.error('[sounds] échec upload :', err);
           return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
         }
+      }
+
+      if (url.pathname === '/api/announcements' && req.method === 'GET') {
+        return jsonResponse(await listAnnouncements());
+      }
+
+      if (url.pathname === '/api/announcements' && req.method === 'POST') {
+        try {
+          return await handleAddAnnouncement(req);
+        } catch (err) {
+          console.error('[announcements] échec ajout :', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
+        }
+      }
+
+      if (url.pathname.startsWith('/api/announcements/') && req.method === 'DELETE') {
+        const id = decodeURIComponent(url.pathname.slice('/api/announcements/'.length));
+        const removed = await removeAnnouncement(id);
+        if (removed) console.log(`[announcements] supprimé : ${id}`);
+        return jsonResponse({ ok: removed });
       }
 
       if (url.pathname === '/ws') {

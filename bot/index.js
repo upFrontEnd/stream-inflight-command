@@ -3,11 +3,13 @@ import { reloadCommands, getCommands } from './commands-store.js';
 import { hasPermission, getUserRole } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
+import { listAnnouncements } from './announcements-store.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.OVERLAY_PORT ?? 4242);
+const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
 
 if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL) {
   throw new Error(
@@ -61,7 +63,27 @@ client.on('message', (channel, userstate, message) => {
   broadcastPlay(sound.file);
 });
 
+// Messages qui tournent en boucle (Discord, follow, etc.), gérés depuis
+// l'onglet Annonces du dashboard — aucun redémarrage requis pour les modifier,
+// la liste est relue à chaque envoi.
+let announceIndex = 0;
+
+async function announceNext() {
+  const list = await listAnnouncements();
+  if (list.length === 0) return;
+
+  const entry = list[announceIndex % list.length];
+  announceIndex += 1;
+  client.say(CHANNEL, entry.text);
+  console.log(`[announcements] envoyé : "${entry.text}"`);
+}
+
+setInterval(() => {
+  announceNext().catch((err) => console.error('[announcements] échec envoi :', err));
+}, ANNOUNCE_INTERVAL_MS);
+
 await client.connect();
 startOverlayServer(OVERLAY_PORT);
 console.log(`Overlay sons dispo sur http://localhost:${OVERLAY_PORT} (à ajouter comme Browser Source dans OBS)`);
 console.log(`API de gestion des sons dispo sur http://localhost:${OVERLAY_PORT}/api/sounds`);
+console.log(`Annonces toutes les ${ANNOUNCE_INTERVAL_MS / 60_000} min, gérées sur http://localhost:${OVERLAY_PORT}/api/announcements`);
