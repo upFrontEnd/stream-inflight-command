@@ -130,6 +130,16 @@ body {
 
   &--error {
     border-left-color: var(--error);
+
+    .card__badge {
+      color: var(--error);
+      border-color: var(--error);
+    }
+  }
+
+  &--ok .card__badge {
+    color: var(--ok);
+    border-color: var(--ok);
   }
 
   &__header {
@@ -146,10 +156,15 @@ body {
   }
 
   &__badge {
+    display: inline-block;
     font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-muted);
+    border: 1px solid var(--text-muted);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
   }
 
   &__text {
