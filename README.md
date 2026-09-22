@@ -68,11 +68,19 @@ the specified user` — c'est normal, pas un bug.
 
 ## Développement local
 
-Dans deux terminaux :
+```bash
+bun run dev
+```
+
+Lance le Worker (`http://localhost:8787`) et le dashboard (`http://localhost:5183`,
+s'ouvre automatiquement) en parallèle dans un seul terminal, logs préfixés
+`[worker]`/`[ui]`. Ctrl+C arrête les deux.
+
+Besoin de les lancer séparément (ex: pour ne voir que les logs de l'un) :
 
 ```bash
 bun run dev:worker   # http://localhost:8787
-bun run dev:ui        # http://localhost:5183, s'ouvre automatiquement
+bun run dev:ui        # http://localhost:5183
 ```
 
 Le dashboard (`ui/`) appelle `http://localhost:8787/api/preview` par défaut
