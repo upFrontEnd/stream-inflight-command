@@ -6,10 +6,15 @@ export function formatAppareil(d) {
   return `🛩️ ${d.aircraft.name} (${d.aircraft.icao}) — immat. ${d.aircraft.reg}`;
 }
 
+// Espaces insécables (U+00A0), pas des espaces normaux : le rendu HTML du
+// chat Twitch fusionne les espaces classiques consécutifs en un seul, ce qui
+// annulerait l'effet d'écart visuel recherché ici.
+const SECTION_GAP = '    ';
+
 export function formatPlandevol(d) {
   const fl = Math.round(Number(d.cruiseAltitudeFt) / 100);
   const resume = `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
-  return `${resume} | ${formatVol(d)}`;
+  return `${resume}${SECTION_GAP}${formatVol(d)}`;
 }
 
 function formatDuration(seconds) {
