@@ -1,26 +1,47 @@
 # stream-inflight-command
 
 Commandes de chat Twitch (`!vol`, `!appareil`, `!plandevol`, `!meteo`) alimentées
-automatiquement par le plan de vol SimBrief du jour, via un Cloudflare Worker.
+automatiquement par le plan de vol SimBrief du jour, via un Cloudflare Worker,
+plus un dashboard pour vérifier les données avant le live.
 
 ## Structure
 
 ```
 stream-command/
-├── package.json          dépendances (wrangler)
-├── bunfig.toml            force `bun run` à utiliser le runtime Bun
-└── worker/
-    ├── wrangler.toml       config Cloudflare Worker
-    ├── .dev.vars.example   gabarit de variables locales
-    ├── index.js            router : une route par commande
-    ├── simbrief.js          appel + parsing de l'API SimBrief
-    ├── metar.js             appel + parsing de l'API METAR (aviationweather.gov)
-    └── commands.js           formatage du texte renvoyé par chaque commande
+├── package.json          dépendances (wrangler, vite, sass)
+├── .nvmrc                 impose Node 22+ (requis par wrangler)
+├── worker/
+│   ├── wrangler.toml       config Cloudflare Worker
+│   ├── .dev.vars.example   gabarit de variables locales
+│   ├── index.js            router : une route par commande
+│   ├── simbrief.js          appel + parsing de l'API SimBrief
+│   ├── metar.js             appel + parsing de l'API METAR (aviationweather.gov)
+│   └── commands.js           formatage du texte renvoyé par chaque commande
+└── ui/
+    ├── vite.config.js        config Vite (root fixé sur ce dossier, port 5183)
+    ├── .env.example          gabarit de variables locales
+    ├── index.html
+    └── src/                  dashboard de preview (JS + SCSS)
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
 par commande, à brancher dans StreamElements avec
 `$(urlfetch https://ton-worker.workers.dev/vol)`.
+
+## Prérequis : Node 22+
+
+Wrangler exige Node 22+. Le projet a un `.nvmrc` :
+
+```bash
+nvm install   # si Node 22 n'est pas encore installé
+nvm use       # à faire dans chaque nouveau terminal, avant toute commande
+```
+
+⚠️ Ne pas contourner ça en forçant `wrangler` à tourner sous le runtime de Bun
+(ex: un `bunfig.toml` avec `[run] bun = true`) — testé, ça fait planter le
+serveur local en silence : il accepte la connexion mais ne répond jamais à
+aucune requête, même une route qui ne fait aucun appel externe. Un vrai
+Node 22+ actif via nvm est la seule solution fiable trouvée.
 
 ## Installation
 
@@ -32,26 +53,33 @@ bun install
 
 ```bash
 cp worker/.dev.vars.example worker/.dev.vars
-# éditer worker/.dev.vars et renseigner SIMBRIEF_USERNAME
+# éditer worker/.dev.vars et renseigner SIMBRIEF_USERNAME (ton userid SimBrief, ex: 57166)
 ```
 
-`.dev.vars` n'est jamais commité (voir `.gitignore`).
+`.dev.vars` n'est jamais commité (voir `.gitignore`). Le Worker détecte
+automatiquement si c'est un `userid` numérique ou un `username` texte.
+
+Tant qu'aucun plan de vol n'a été généré sur simbrief.com (bouton "Generate
+Flight Plan"), les commandes renverront `Erreur : No flight plan on file for
+the specified user` — c'est normal, pas un bug.
 
 ## Développement local
 
+Dans deux terminaux (penser à `nvm use` dans chacun) :
+
 ```bash
 bun run dev:worker   # http://localhost:8787
+bun run dev:ui        # http://localhost:5183, s'ouvre automatiquement
 ```
 
-Pour vérifier qu'une commande renvoie les bonnes données avant le live, ouvre
-directement la route dans le navigateur ou via curl, par ex.
-`http://localhost:8787/vol`. `http://localhost:8787/api/preview` renvoie les
-4 commandes + le JSON brut SimBrief en une fois.
+Le dashboard (`ui/`) appelle `http://localhost:8787/api/preview` par défaut
+(configurable via `ui/.env.local`, voir `ui/.env.example`) et affiche pour
+chaque commande : le texte tel qu'il apparaîtrait dans le chat, un badge
+OK/Erreur, et un panneau dépliable avec le JSON brut SimBrief — le point de
+contrôle avant chaque live.
 
-> `bunfig.toml` force `bun run` à utiliser le runtime de Bun plutôt que Node
-> pour exécuter les scripts. Wrangler exige Node 20+/22+ ; ce réglage
-> contourne le problème si ta machine a une version de Node plus ancienne
-> installée globalement.
+On peut aussi vérifier une route directement, sans le dashboard :
+`http://localhost:8787/vol`.
 
 ## Déploiement
 
@@ -73,11 +101,12 @@ bun run deploy:worker
 
 ## À vérifier / limites connues
 
-- Les noms de champs SimBrief (`origin.icao_code`, `aircraft.icaocode`,
-  `fuel.plan_ramp`, etc., dans `worker/simbrief.js`) ont été recoupés à
-  partir d'intégrations tierces open-source, pas d'un appel réel — vérifie
-  `/api/preview` dès le premier test avec un vrai plan de vol et ajuste si un
-  champ ne correspond pas.
+- Les champs SimBrief (`worker/simbrief.js`) ont été vérifiés contre un appel
+  réel (`userid=57166`, sept. 2026) : `origin.icao_code`, `aircraft.icaocode`,
+  `fuel.plan_ramp`, etc. sont corrects pour un plan de vol renseigné. Les
+  champs qui n'apparaissent que dans certains types de plans (ex: `fuel.units`)
+  restent à confirmer via le panneau "données brutes" du dashboard une fois
+  un vrai plan généré.
 - Le plan planifié (SimBrief) peut différer de l'appareil réellement chargé
   dans le sim à l'instant T ; lire l'état réel de MSFS nécessiterait SimConnect
   en local, hors scope ici.

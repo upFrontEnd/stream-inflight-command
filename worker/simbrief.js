@@ -1,15 +1,15 @@
-// Champs vérifiés contre des intégrations SimBrief tierces (dispatch tools open-source),
-// pas contre un appel réel : à confirmer avec le panneau "données brutes" de l'UI dès
-// qu'un vrai username est branché, et ajuster ici si un champ ne correspond pas.
-export async function fetchSimbriefData(username) {
-  const url = `https://www.simbrief.com/api/xml.fetcher.php?username=${encodeURIComponent(username)}&json=1`;
+// Champs vérifiés contre un appel réel à l'API SimBrief (userid=57166, sept. 2026).
+export async function fetchSimbriefData(pilotId) {
+  // L'API SimBrief distingue userid (numérique, ex: 57166) et username (texte).
+  const param = /^\d+$/.test(pilotId) ? 'userid' : 'username';
+  const url = `https://www.simbrief.com/api/xml.fetcher.php?${param}=${encodeURIComponent(pilotId)}&json=1`;
   const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`SimBrief a répondu ${res.status}`);
-  }
-
   const data = await res.json();
+
+  if (!res.ok || data?.fetch?.status?.startsWith('Error')) {
+    const message = data?.fetch?.status?.replace(/^Error:\s*/, '') ?? `SimBrief a répondu ${res.status}`;
+    throw new Error(message);
+  }
 
   if (!data?.origin?.icao_code || !data?.destination?.icao_code) {
     throw new Error('Aucun plan de vol SimBrief trouvé pour ce pilote');
