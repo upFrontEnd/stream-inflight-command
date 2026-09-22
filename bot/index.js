@@ -23,6 +23,18 @@ const client = new tmi.Client({
   channels: [CHANNEL],
 });
 
+// IRC/Twitch ne supporte pas les sauts de ligne dans un seul message : un
+// texte multi-paragraphes (séparé par \n) est envoyé comme plusieurs messages
+// de chat consécutifs, avec un petit délai pour garder l'ordre et éviter le
+// rate-limit Twitch.
+async function sayLines(channel, text) {
+  const lines = text.split('\n').filter((line) => line.trim());
+  for (const [i, line] of lines.entries()) {
+    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1200));
+    client.say(channel, line);
+  }
+}
+
 client.on('message', (channel, userstate, message) => {
   // Pas de filtre "self" : le compte bot est ton propre compte Twitch, donc
   // tes propres messages doivent bien déclencher les commandes. Sans risque
@@ -31,7 +43,7 @@ client.on('message', (channel, userstate, message) => {
 
   if (isWorkerCommand(command)) {
     fetchWorkerReply(command)
-      .then((text) => client.say(channel, text))
+      .then((text) => sayLines(channel, text))
       .catch((err) => console.error(`[worker] ${command} a échoué :`, err));
     return;
   }
