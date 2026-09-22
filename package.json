@@ -8,7 +8,11 @@
     "deploy:worker": "./scripts/with-node22.sh wrangler deploy --config worker/wrangler.toml",
     "dev:ui": "./scripts/with-node22.sh vite --config ui/vite.config.js",
     "build:ui": "./scripts/with-node22.sh vite build --config ui/vite.config.js",
-    "preview:ui": "./scripts/with-node22.sh vite preview --config ui/vite.config.js"
+    "preview:ui": "./scripts/with-node22.sh vite preview --config ui/vite.config.js",
+    "bot": "bun --env-file=bot/.env bot/index.js"
+  },
+  "dependencies": {
+    "tmi.js": "^1.8.5"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

@@ -17,16 +17,29 @@ stream-command/
 │   ├── simbrief.js          appel + parsing de l'API SimBrief
 │   ├── metar.js             appel + parsing de l'API METAR (aviationweather.gov)
 │   └── commands.js           formatage du texte renvoyé par chaque commande
-└── ui/
-    ├── vite.config.js        config Vite (root fixé sur ce dossier, port 5183)
-    ├── .env.example          gabarit de variables locales
-    ├── index.html
-    └── src/                  dashboard de preview (JS + SCSS)
+├── ui/
+│   ├── vite.config.js        config Vite (root fixé sur ce dossier, port 5183)
+│   ├── .env.example          gabarit de variables locales
+│   ├── index.html
+│   └── src/                  dashboard de preview (JS + SCSS)
+└── bot/
+    ├── .env.example           gabarit de variables locales
+    ├── index.js                connexion Twitch + boucle de commandes
+    ├── commands.js              config : commande → son + rôle minimum
+    ├── permissions.js            viewer / subscriber / moderator
+    ├── server.js                  serveur WebSocket + fichiers statiques (Bun natif)
+    ├── overlay/                   page à ajouter comme Browser Source dans OBS
+    └── sounds/                    fichiers audio (non commités)
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
 par commande, à brancher dans StreamElements avec
 `$(urlfetch https://ton-worker.workers.dev/vol)`.
+
+Le bot (`bot/`) est un bot Twitch 100% custom, indépendant du Worker : il se
+connecte au chat, et quand quelqu'un tape une commande son autorisée pour son
+rôle, il pousse un événement en WebSocket vers un overlay affiché dans OBS,
+qui joue le son.
 
 ## Prérequis : Node 22+
 
@@ -91,6 +104,64 @@ contrôle avant chaque live.
 
 On peut aussi vérifier une route directement, sans le dashboard :
 `http://localhost:8787/vol`.
+
+## Bot Twitch custom (sons déclenchés par le chat)
+
+### 1. Compte + token Twitch
+
+Le plus simple : utilise ton propre compte Twitch comme bot (pas besoin d'un
+compte séparé pour commencer). Génère un token OAuth pour `tmi.js` sur
+[twitchapps.com/tmi](https://twitchapps.com/tmi/) (connecte-toi avec le compte
+qui doit parler dans le chat) — il donne directement une valeur au format
+`oauth:xxxxxxxx...`. Tu peux le révoquer à tout moment depuis
+[twitch.tv/settings/connections](https://www.twitch.tv/settings/connections).
+
+### 2. Configurer
+
+```bash
+cp bot/.env.example bot/.env
+# éditer bot/.env : TWITCH_BOT_USERNAME, TWITCH_OAUTH_TOKEN, TWITCH_CHANNEL
+```
+
+`bot/.env` n'est jamais commité.
+
+### 3. Ajouter des sons et des commandes
+
+Dépose tes fichiers audio dans `bot/sounds/` (non commités, voir
+`bot/sounds/README.md` — souvent protégés par droits d'auteur). Puis déclare
+chaque commande dans `bot/commands.js` :
+
+```js
+export const soundCommands = {
+  '!boom': { file: 'boom.mp3', minRole: 'viewer' },
+  '!airhorn': { file: 'airhorn.mp3', minRole: 'subscriber' },
+  '!alert': { file: 'alert.mp3', minRole: 'moderator' },
+};
+```
+
+`minRole` accepte `viewer` (tout le monde), `subscriber` (subs + modos +
+streamer) ou `moderator` (modos + streamer). Un viewer qui tape une commande
+au-dessus de son rôle reçoit un message du bot lui expliquant qu'il n'a pas la
+permission ; rien ne se joue.
+
+### 4. Lancer le bot
+
+```bash
+bun run bot
+```
+
+Affiche `Overlay sons dispo sur http://localhost:4242` une fois connecté au
+chat.
+
+### 5. Ajouter l'overlay dans OBS
+
+Dans OBS : **Sources → + → Browser Source** → URL `http://localhost:4242`,
+coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
+autres sources, largeur/hauteur peu importantes (rien n'est visible, juste
+audio). Le fond est transparent.
+
+Teste en tapant une des commandes dans ton propre chat (sur ta chaîne, en tant
+que streamer tu passes toujours en `moderator`).
 
 ## Déploiement
 
