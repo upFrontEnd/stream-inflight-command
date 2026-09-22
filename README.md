@@ -1,6 +1,6 @@
 # stream-inflight-command
 
-Commandes de chat Twitch (`!vol`, `!appareil`, `!plandevol`, `!meteo`) alimentées
+Commandes de chat Twitch (`!appareil`, `!plandevol`, `!meteo`) alimentées
 automatiquement par le plan de vol SimBrief du jour, via un Cloudflare Worker,
 plus un dashboard pour vérifier les données avant le live.
 
@@ -44,7 +44,7 @@ stream-command/
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
 par commande, à brancher dans StreamElements avec
-`$(urlfetch https://ton-worker.workers.dev/vol)`.
+`$(urlfetch https://ton-worker.workers.dev/plandevol)`.
 
 Le bot (`bot/`) est un bot Twitch 100% custom, indépendant du Worker : il se
 connecte au chat, et quand quelqu'un tape une commande son autorisée pour son
@@ -119,7 +119,7 @@ Le dashboard a deux onglets :
 URLs configurables via `ui/.env.local` (voir `ui/.env.example`).
 
 On peut aussi vérifier une route directement, sans le dashboard :
-`http://localhost:8787/vol`.
+`http://localhost:8787/plandevol`.
 
 ## Bot Twitch custom (sons déclenchés par le chat)
 
@@ -210,11 +210,10 @@ bun run deploy:worker
 
 | Route           | Description                                  |
 | ---------------- | --------------------------------------------- |
-| `/vol`           | Départ, arrivée, route, distance              |
 | `/appareil`      | Type d'appareil, immatriculation              |
-| `/plandevol`     | Résumé : altitude de croisière, temps, carburant |
+| `/plandevol`     | Résumé (FL, durée, carburant) + route détaillée (départ/arrivée, route, distance) |
 | `/meteo`         | METAR brut départ/arrivée (aviationweather.gov) |
-| `/api/preview`   | JSON structuré : les 4 commandes + données brutes |
+| `/api/preview`   | JSON structuré : les 3 commandes + données brutes |
 
 ## Routes exposées par le bot (`http://localhost:4242`)
 
