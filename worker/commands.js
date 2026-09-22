@@ -8,7 +8,8 @@ export function formatAppareil(d) {
 
 export function formatPlandevol(d) {
   const fl = Math.round(Number(d.cruiseAltitudeFt) / 100);
-  return `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
+  const resume = `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
+  return `${resume} | ${formatVol(d)}`;
 }
 
 function formatDuration(seconds) {
