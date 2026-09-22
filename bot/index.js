@@ -26,11 +26,24 @@ const client = new tmi.Client({
 // IRC/Twitch ne supporte pas les sauts de ligne dans un seul message : un
 // texte multi-paragraphes (séparé par \n) est envoyé comme plusieurs messages
 // de chat consécutifs, avec un petit délai pour garder l'ordre et éviter le
-// rate-limit Twitch.
+// rate-limit Twitch. Twitch refuse aussi les messages vraiment vides, donc la
+// "ligne vide" entre chaque paragraphe est un caractère invisible (Hangul
+// Filler, U+3164) plutôt qu'une chaîne vide.
+const BLANK_LINE = 'ㅤ';
+const DELAY_MS = 1200;
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function sayLines(channel, text) {
   const lines = text.split('\n').filter((line) => line.trim());
   for (const [i, line] of lines.entries()) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1200));
+    if (i > 0) {
+      await wait(DELAY_MS);
+      client.say(channel, BLANK_LINE);
+      await wait(DELAY_MS);
+    }
     client.say(channel, line);
   }
 }
