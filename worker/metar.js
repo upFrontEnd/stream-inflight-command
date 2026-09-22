@@ -14,11 +14,11 @@ export async function fetchMetars(icaoCodes) {
   });
 }
 
-// \n sépare des paragraphes destinés à devenir des messages de chat distincts
-// (bot/index.js les envoie un par un) — impossible d'avoir un vrai saut de
-// ligne à l'intérieur d'un seul message IRC/Twitch.
+// "\n\n" sépare des paragraphes (ligne vide entre eux dans le chat, voir
+// bot/index.js sayLines) — une ligne vide entre le METAR de départ et celui
+// d'arrivée.
 export function formatMeteoText(metars) {
   return metars
     .map((m) => (m.raw ? `${m.icao}: ${m.raw}` : `${m.icao}: METAR indisponible`))
-    .join('\n');
+    .join('\n\n');
 }

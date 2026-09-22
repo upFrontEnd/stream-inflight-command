@@ -23,12 +23,13 @@ const client = new tmi.Client({
   channels: [CHANNEL],
 });
 
-// IRC/Twitch ne supporte pas les sauts de ligne dans un seul message : un
-// texte multi-paragraphes (séparé par \n) est envoyé comme plusieurs messages
-// de chat consécutifs, avec un petit délai pour garder l'ordre et éviter le
-// rate-limit Twitch. Twitch refuse aussi les messages vraiment vides, donc la
-// "ligne vide" entre chaque paragraphe est un caractère invisible (Hangul
-// Filler, U+3164) plutôt qu'une chaîne vide.
+// IRC/Twitch ne supporte pas les sauts de ligne dans un seul message : chaque
+// ligne devient de toute façon un message séparé, avec un petit délai entre
+// chaque envoi pour garder l'ordre et éviter le rate-limit Twitch. Deux
+// niveaux de coupure dans le texte source : "\n\n" = paragraphe (une ligne
+// vide s'affiche entre les deux), simple "\n" = juste deux messages collés
+// sans ligne vide. Twitch refuse les messages vraiment vides, donc la "ligne
+// vide" est en réalité un caractère invisible (Hangul Filler, U+3164).
 const BLANK_LINE = 'ㅤ';
 const DELAY_MS = 1200;
 
@@ -37,14 +38,21 @@ function wait(ms) {
 }
 
 async function sayLines(channel, text) {
-  const lines = text.split('\n').filter((line) => line.trim());
-  for (const [i, line] of lines.entries()) {
-    if (i > 0) {
+  const paragraphs = text
+    .split('\n\n')
+    .map((p) => p.split('\n').filter((line) => line.trim()))
+    .filter((p) => p.length > 0);
+
+  for (const [pIndex, lines] of paragraphs.entries()) {
+    if (pIndex > 0) {
       await wait(DELAY_MS);
       client.say(channel, BLANK_LINE);
       await wait(DELAY_MS);
     }
-    client.say(channel, line);
+    for (const [lIndex, line] of lines.entries()) {
+      if (lIndex > 0) await wait(DELAY_MS);
+      client.say(channel, line);
+    }
   }
 }
 
