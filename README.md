@@ -5,11 +5,22 @@ automatiquement par le plan de vol SimBrief du jour, via un Cloudflare Worker.
 
 ## Structure
 
-- `worker/` — le Cloudflare Worker qui interroge SimBrief + aviationweather.gov (METAR)
-  et expose une route texte par commande, à brancher dans StreamElements avec
-  `$(urlfetch https://ton-worker.workers.dev/vol)`.
-- `ui/` — dashboard de preview (Vite + Bun, TypeScript vanilla, SCSS) pour vérifier
-  avant le live que chaque commande renvoie bien les bonnes données.
+```
+stream-command/
+├── package.json          dépendances (wrangler)
+├── bunfig.toml            force `bun run` à utiliser le runtime Bun
+└── worker/
+    ├── wrangler.toml       config Cloudflare Worker
+    ├── .dev.vars.example   gabarit de variables locales
+    ├── index.js            router : une route par commande
+    ├── simbrief.js          appel + parsing de l'API SimBrief
+    ├── metar.js             appel + parsing de l'API METAR (aviationweather.gov)
+    └── commands.js           formatage du texte renvoyé par chaque commande
+```
+
+Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
+par commande, à brancher dans StreamElements avec
+`$(urlfetch https://ton-worker.workers.dev/vol)`.
 
 ## Installation
 
@@ -28,25 +39,26 @@ cp worker/.dev.vars.example worker/.dev.vars
 
 ## Développement local
 
-Dans deux terminaux :
-
 ```bash
 bun run dev:worker   # http://localhost:8787
-bun run dev:ui        # http://localhost:5173
 ```
 
-L'UI appelle `http://localhost:8787/api/preview` par défaut (configurable via
-`ui/.env.local`, voir `ui/.env.example`). Elle affiche pour chaque commande le
-texte tel qu'il apparaîtrait dans le chat, un statut OK/Erreur, et un panneau
-dépliable avec le JSON brut renvoyé par SimBrief — c'est le point de contrôle
-avant chaque live.
+Pour vérifier qu'une commande renvoie les bonnes données avant le live, ouvre
+directement la route dans le navigateur ou via curl, par ex.
+`http://localhost:8787/vol`. `http://localhost:8787/api/preview` renvoie les
+4 commandes + le JSON brut SimBrief en une fois.
 
-## Déploiement du Worker
+> `bunfig.toml` force `bun run` à utiliser le runtime de Bun plutôt que Node
+> pour exécuter les scripts. Wrangler exige Node 20+/22+ ; ce réglage
+> contourne le problème si ta machine a une version de Node plus ancienne
+> installée globalement.
+
+## Déploiement
 
 ```bash
 bunx wrangler login
-bunx wrangler secret put SIMBRIEF_USERNAME   # dans worker/
-bun --cwd worker run deploy
+bunx wrangler secret put SIMBRIEF_USERNAME --config worker/wrangler.toml
+bun run deploy:worker
 ```
 
 ## Routes exposées par le Worker
@@ -57,15 +69,15 @@ bun --cwd worker run deploy
 | `/appareil`      | Type d'appareil, immatriculation              |
 | `/plandevol`     | Résumé : altitude de croisière, temps, carburant |
 | `/meteo`         | METAR brut départ/arrivée (aviationweather.gov) |
-| `/api/preview`   | JSON structuré pour l'UI de preview           |
+| `/api/preview`   | JSON structuré : les 4 commandes + données brutes |
 
 ## À vérifier / limites connues
 
 - Les noms de champs SimBrief (`origin.icao_code`, `aircraft.icaocode`,
-  `fuel.plan_ramp`, etc., dans `worker/src/simbrief.ts`) ont été recoupés à
-  partir d'intégrations tierces open-source, pas d'un appel réel — utilise le
-  panneau "données brutes" de l'UI pour confirmer/ajuster dès le premier test
-  avec un vrai plan de vol.
+  `fuel.plan_ramp`, etc., dans `worker/simbrief.js`) ont été recoupés à
+  partir d'intégrations tierces open-source, pas d'un appel réel — vérifie
+  `/api/preview` dès le premier test avec un vrai plan de vol et ajuste si un
+  champ ne correspond pas.
 - Le plan planifié (SimBrief) peut différer de l'appareil réellement chargé
   dans le sim à l'instant T ; lire l'état réel de MSFS nécessiterait SimConnect
   en local, hors scope ici.

@@ -1,9 +1,12 @@
 {
   "name": "stream-inflight-command",
   "private": true,
-  "workspaces": ["worker", "ui"],
+  "type": "module",
   "scripts": {
-    "dev:worker": "bun --cwd worker run dev",
-    "dev:ui": "bun --cwd ui run dev"
+    "dev:worker": "wrangler dev --config worker/wrangler.toml",
+    "deploy:worker": "wrangler deploy --config worker/wrangler.toml"
+  },
+  "devDependencies": {
+    "wrangler": "^4.136.3"
   }
 }

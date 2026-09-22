@@ -1,45 +1,44 @@
-import { fetchSimbriefData } from './simbrief';
-import { fetchMetars, formatMeteoText } from './metar';
-import { formatVol, formatAppareil, formatPlandevol } from './commands';
-import type { CommandPreview, Env, PreviewResponse } from './types';
+import { fetchSimbriefData } from './simbrief.js';
+import { fetchMetars, formatMeteoText } from './metar.js';
+import { formatVol, formatAppareil, formatPlandevol } from './commands.js';
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, OPTIONS',
 };
 
-function textResponse(body: string, status = 200): Response {
+function textResponse(body, status = 200) {
   return new Response(body, {
     status,
     headers: { 'content-type': 'text/plain; charset=utf-8', ...CORS_HEADERS },
   });
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', ...CORS_HEADERS },
   });
 }
 
-function errorMessage(err: unknown): string {
+function errorMessage(err) {
   return err instanceof Error ? err.message : 'Erreur inconnue';
 }
 
-async function buildPreview(env: Env): Promise<PreviewResponse> {
+async function buildPreview(env) {
   let simbrief;
   try {
     simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
   } catch (err) {
-    const failed: CommandPreview = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+    const failed = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
     return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, raw: null };
   }
 
-  const vol: CommandPreview = { ok: true, text: formatVol(simbrief) };
-  const appareil: CommandPreview = { ok: true, text: formatAppareil(simbrief) };
-  const plandevol: CommandPreview = { ok: true, text: formatPlandevol(simbrief) };
+  const vol = { ok: true, text: formatVol(simbrief) };
+  const appareil = { ok: true, text: formatAppareil(simbrief) };
+  const plandevol = { ok: true, text: formatPlandevol(simbrief) };
 
-  let meteo: CommandPreview;
+  let meteo;
   try {
     const metars = await fetchMetars([simbrief.origin.icao, simbrief.destination.icao]);
     meteo = { ok: true, text: formatMeteoText(metars) };
@@ -51,7 +50,7 @@ async function buildPreview(env: Env): Promise<PreviewResponse> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {

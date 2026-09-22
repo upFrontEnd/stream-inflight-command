@@ -1,19 +1,17 @@
-import type { SimbriefData } from './types';
-
-export function formatVol(d: SimbriefData): string {
+export function formatVol(d) {
   return `✈️ ${d.origin.icao} (${d.origin.name}) → ${d.destination.icao} (${d.destination.name}) | Route: ${d.route || 'directe'} | ${d.routeDistanceNm} nm`;
 }
 
-export function formatAppareil(d: SimbriefData): string {
+export function formatAppareil(d) {
   return `🛩️ ${d.aircraft.name} (${d.aircraft.icao}) — immat. ${d.aircraft.reg}`;
 }
 
-export function formatPlandevol(d: SimbriefData): string {
+export function formatPlandevol(d) {
   const fl = Math.round(Number(d.cruiseAltitudeFt) / 100);
   return `📋 ${d.origin.icao} → ${d.destination.icao} | FL${fl} | ${formatDuration(d.enrouteSeconds)} | ${d.fuelPlanRamp} ${d.fuelUnits} de carburant prévu`;
 }
 
-function formatDuration(seconds: number): string {
+function formatDuration(seconds) {
   const totalMinutes = Math.round(seconds / 60);
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;

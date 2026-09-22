@@ -1,5 +1,5 @@
 name = "stream-inflight-command"
-main = "src/index.ts"
+main = "index.js"
 compatibility_date = "2026-09-22"
 
 # SIMBRIEF_USERNAME n'est pas défini ici pour ne pas committer d'identifiant.
