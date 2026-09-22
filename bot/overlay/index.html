@@ -5,9 +5,25 @@
     <title>Overlay sons</title>
     <style>
       html, body { margin: 0; background: transparent; }
+      #unlock {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        font: 16px -apple-system, sans-serif;
+        cursor: pointer;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
+    <!-- Retiré automatiquement dans OBS (pas de restriction autoplay là-bas) ;
+         reste visible dans un onglet de navigateur classique tant qu'on n'a
+         pas cliqué une fois (obligatoire pour débloquer la lecture audio). -->
+    <div id="unlock">Cliquer pour activer le son (une seule fois)</div>
     <script type="module" src="/main.js"></script>
   </body>
 </html>

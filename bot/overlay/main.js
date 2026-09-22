@@ -1,3 +1,15 @@
+// OBS injecte "OBS/x.x.x" dans le user agent de ses Browser Sources et n'y
+// applique pas la restriction autoplay — dans ce cas le bouton ne doit
+// jamais apparaître (il polluerait visuellement le stream).
+const isObsBrowserSource = /\bOBS\//.test(navigator.userAgent);
+const unlockEl = document.querySelector('#unlock');
+
+if (isObsBrowserSource) {
+  unlockEl?.remove();
+} else if (unlockEl) {
+  unlockEl.addEventListener('click', () => unlockEl.remove(), { once: true });
+}
+
 function connect() {
   const ws = new WebSocket(`ws://${location.host}/ws`);
 
