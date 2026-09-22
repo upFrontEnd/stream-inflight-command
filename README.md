@@ -30,18 +30,21 @@ par commande, à brancher dans StreamElements avec
 
 ## Prérequis : Node 22+
 
-Wrangler exige Node 22+. Le projet a un `.nvmrc` :
+Wrangler exige Node 22+. Si Node 22 n'est pas encore installé :
 
 ```bash
-nvm install   # si Node 22 n'est pas encore installé
-nvm use       # à faire dans chaque nouveau terminal, avant toute commande
+nvm install 22
 ```
+
+Tous les scripts (`bun run dev:worker`, `bun run build:ui`, etc.) passent par
+`scripts/with-node22.sh`, qui bascule automatiquement sur Node 22 via nvm
+avant de lancer la vraie commande — pas besoin de faire `nvm use` toi-même.
 
 ⚠️ Ne pas contourner ça en forçant `wrangler` à tourner sous le runtime de Bun
 (ex: un `bunfig.toml` avec `[run] bun = true`) — testé, ça fait planter le
 serveur local en silence : il accepte la connexion mais ne répond jamais à
 aucune requête, même une route qui ne fait aucun appel externe. Un vrai
-Node 22+ actif via nvm est la seule solution fiable trouvée.
+Node 22+ est la seule solution fiable trouvée.
 
 ## Installation
 
@@ -65,7 +68,7 @@ the specified user` — c'est normal, pas un bug.
 
 ## Développement local
 
-Dans deux terminaux (penser à `nvm use` dans chacun) :
+Dans deux terminaux :
 
 ```bash
 bun run dev:worker   # http://localhost:8787
@@ -84,8 +87,8 @@ On peut aussi vérifier une route directement, sans le dashboard :
 ## Déploiement
 
 ```bash
-bunx wrangler login
-bunx wrangler secret put SIMBRIEF_USERNAME --config worker/wrangler.toml
+./scripts/with-node22.sh bunx wrangler login
+./scripts/with-node22.sh bunx wrangler secret put SIMBRIEF_USERNAME --config worker/wrangler.toml
 bun run deploy:worker
 ```
 

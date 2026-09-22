@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:worker": "wrangler dev --config worker/wrangler.toml",
-    "deploy:worker": "wrangler deploy --config worker/wrangler.toml",
-    "dev:ui": "vite --config ui/vite.config.js",
-    "build:ui": "vite build --config ui/vite.config.js",
-    "preview:ui": "vite preview --config ui/vite.config.js"
+    "dev:worker": "./scripts/with-node22.sh wrangler dev --config worker/wrangler.toml",
+    "deploy:worker": "./scripts/with-node22.sh wrangler deploy --config worker/wrangler.toml",
+    "dev:ui": "./scripts/with-node22.sh vite --config ui/vite.config.js",
+    "build:ui": "./scripts/with-node22.sh vite build --config ui/vite.config.js",
+    "preview:ui": "./scripts/with-node22.sh vite preview --config ui/vite.config.js"
   },
   "devDependencies": {
     "sass": "^1.105.0",
