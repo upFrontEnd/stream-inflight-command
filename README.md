@@ -34,7 +34,13 @@ stream-command/
 │       │   ├── sounds-panel.js             onglet Sons : liste + ajout de sons
 │       │   └── announcements-panel.js      onglet Annonces : liste + ajout de messages
 │       └── scss/
-│           └── style.scss
+│           ├── style.scss                  point d'entrée : @use des partiels ci-dessous
+│           ├── _base.scss                  variables CSS, reset, body
+│           ├── _layout.scss                en-tête, logo, onglets, icônes
+│           ├── _forms.scss                 boutons, champs, dropzone (partagés)
+│           ├── _vol.scss                   cartes de commandes, panneau JSON brut
+│           ├── _sounds.scss                liste des sons, chips cliquables
+│           └── _announcements.scss         liste des messages d'annonce
 └── bot/
     ├── .env.example                        gabarit de variables locales
     ├── announcements.example.json          gabarit (le vrai fichier n'est pas commité)
