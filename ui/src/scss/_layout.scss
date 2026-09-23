@@ -21,7 +21,7 @@
 
   &__logo {
     display: block;
-    height: 36px;
+    height: 56px;
     width: auto;
     flex-shrink: 0;
   }
@@ -37,8 +37,6 @@
 .tabs {
   display: flex;
   gap: 0.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.25rem;
 
@@ -55,7 +53,6 @@
     cursor: pointer;
 
     &.is-active {
-      background: var(--accent-dim);
       color: var(--accent);
     }
   }

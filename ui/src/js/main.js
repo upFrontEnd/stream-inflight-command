@@ -18,7 +18,6 @@ app.innerHTML = `
     <header class="app__header">
       <div class="app__brand">
         <img src="${logoUrl}" alt="Skyflyer Aviation" class="app__logo" />
-        <p class="app__subtitle">Dashboard de gestion du stream</p>
       </div>
       <nav class="tabs" id="tabs">
         ${TABS.map(

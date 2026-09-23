@@ -219,6 +219,15 @@ bun run bot
 Affiche `Overlay sons dispo sur http://localhost:4242` une fois connecté au
 chat.
 
+`bun run bot` passe par `scripts/bot-watchdog.sh` : si le bot plante (token
+Twitch expiré, coupure réseau...), il redémarre automatiquement avec un délai
+croissant (5s, 10s, 20s... jusqu'à 60s max) plutôt que de rester éteint en
+silence jusqu'à ce qu'on s'en rende compte en plein live. Un token expiré fera
+quand même planter chaque tentative jusqu'à en régénérer un nouveau
+(`bun run bot:token`), mais le bot repart tout seul dès que c'est fait, sans
+redémarrage manuel. Pour lancer le bot une seule fois sans surveillance (utile
+en debug) : `bun run bot:once`.
+
 ### 6. Ajouter l'overlay dans OBS
 
 Dans OBS : **Sources → + → Browser Source** → URL `http://localhost:4242`,
@@ -307,3 +316,8 @@ bun run deploy:worker
   des limites larges) permettront de limiter les appels.
 - Plan gratuit Cloudflare Workers : 100 000 requêtes/jour, largement suffisant
   pour ce volume d'usage.
+- Le token OAuth Twitch (`bot/.env`) n'est pas rafraîchi automatiquement et
+  finit par expirer (aucune logique de `refresh_token` implémentée). Le bot
+  plante alors avec `Login authentication failed` ; `scripts/bot-watchdog.sh`
+  continue de retenter en arrière-plan, mais il faut régénérer un nouveau
+  token (`bun run bot:token`) pour que ça reparte.
