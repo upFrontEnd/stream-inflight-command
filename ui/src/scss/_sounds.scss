@@ -1,0 +1,87 @@
+// Onglet Sons : mise en page + liste des commandes son par catégorie
+
+.sounds-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sounds-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sounds-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--accent);
+    }
+  }
+
+  &__hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--text);
+
+  &--empty {
+    color: var(--text-muted);
+    font-family: inherit;
+    font-style: italic;
+  }
+}
+
+button.chip {
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &.chip--copied {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+}
