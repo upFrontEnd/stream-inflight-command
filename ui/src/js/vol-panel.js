@@ -14,6 +14,12 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+const BADGE_TEXT = { ok: 'OK', standby: 'STAND BY', error: 'Erreur' };
+
+function statusOf(entry) {
+  return entry.status ?? (entry.ok ? 'ok' : 'error');
+}
+
 export function mountVolPanel(root) {
   root.innerHTML = `
     <div class="panel__toolbar">
@@ -35,12 +41,12 @@ export function mountVolPanel(root) {
   function renderCards(data) {
     cardsEl.innerHTML = COMMANDS.map(({ key, label }) => {
       const entry = data[key];
-      const stateClass = entry.ok ? 'card--ok' : 'card--error';
+      const status = statusOf(entry);
       return `
-        <article class="card ${stateClass}">
+        <article class="card card--${status}">
           <div class="card__header">
             <span class="card__command">${label}</span>
-            <span class="card__badge">${entry.ok ? 'OK' : 'Erreur'}</span>
+            <span class="card__badge">${BADGE_TEXT[status]}</span>
           </div>
           <p class="card__text">${escapeHtml(entry.text)}</p>
         </article>

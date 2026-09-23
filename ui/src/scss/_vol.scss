@@ -21,6 +21,15 @@
     }
   }
 
+  &--standby {
+    border-left-color: var(--standby);
+
+    .card__badge {
+      color: var(--standby);
+      border-color: var(--standby);
+    }
+  }
+
   &--ok .card__badge {
     color: var(--ok);
     border-color: var(--ok);

@@ -31,28 +31,32 @@ async function buildPreview(env) {
   try {
     simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
   } catch (err) {
-    const failed = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+    const failed = { ok: false, status: 'error', text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
     return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, eta: failed, raw: null };
   }
 
-  const vol = { ok: true, text: formatVol(simbrief) };
-  const appareil = { ok: true, text: formatAppareil(simbrief) };
-  const plandevol = { ok: true, text: formatPlandevol(simbrief) };
+  const vol = { ok: true, status: 'ok', text: formatVol(simbrief) };
+  const appareil = { ok: true, status: 'ok', text: formatAppareil(simbrief) };
+  const plandevol = { ok: true, status: 'ok', text: formatPlandevol(simbrief) };
 
   let meteo;
   try {
     const metars = await fetchMetars([simbrief.origin.icao, simbrief.destination.icao]);
-    meteo = { ok: true, text: formatMeteoText(metars) };
+    meteo = { ok: true, status: 'ok', text: formatMeteoText(metars) };
   } catch (err) {
-    meteo = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+    meteo = { ok: false, status: 'error', text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
   }
 
+  // "standby" : pas d'erreur, mais pas connecté sur IVAO/VATSIM pour l'instant
+  // (distinct visuellement du succès en vert et de l'erreur en rouge).
   let eta;
   try {
     const result = await findEta(env, simbrief.destination);
-    eta = { ok: true, text: formatEtaText(result, simbrief.destination.icao) };
+    eta = result
+      ? { ok: true, status: 'ok', text: formatEtaText(result, simbrief.destination.icao) }
+      : { ok: true, status: 'standby', text: formatEtaText(null, simbrief.destination.icao) };
   } catch (err) {
-    eta = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+    eta = { ok: false, status: 'error', text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
   }
 
   return { vol, appareil, plandevol, meteo, eta, raw: simbrief };
