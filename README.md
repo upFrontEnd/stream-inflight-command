@@ -7,7 +7,7 @@ du jour.
 Commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
 connecté au chat Twitch, plus un dashboard pour vérifier les données avant le live.
 
-## Structure
+## Structure ![Structure](https://img.shields.io/badge/Structure-4ea1ff?style=flat-square)
 
 ```
 stream-command/
@@ -31,7 +31,7 @@ stream-command/
 │       ├── img/
 │       │   └── logo_Lettre-1-V2-blanc.png  Logo Skyflyer Aviation (fond sombre)
 │       ├── js/
-│       │   ├── main.js                     Coquille + onglets (Vol / Sons / Annonces)
+│       │   ├── main.js                     Onglets (Vol / Sons / Annonces)
 │       │   ├── api.js                      Appels au Worker et au bot
 │       │   ├── icons.js                    SVG des icônes d'onglets
 │       │   ├── vol-panel.js                Onglet Vol : preview des commandes SimBrief
@@ -65,7 +65,7 @@ stream-command/
         └── modo/                           Modos + streamer
 ```
 
-Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
+Le Worker interroge SimBrief + aviationweather.gov et expose un texte
 par commande (ex: `/plandevol`). C'est une brique indépendante, testable
 seule via curl/navigateur.
 
@@ -76,7 +76,7 @@ son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
 OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers :
 tout passe par `bun run dev` / `bun run bot`.
 
-## Prérequis : Node 22+
+## Prérequis : Node 22+ ![Prérequis](https://img.shields.io/badge/Pr%C3%A9requis-f5a623?style=flat-square)
 
 Wrangler exige Node 22+. Si Node 22 n'est pas encore installé :
 
@@ -94,13 +94,13 @@ serveur local en silence : il accepte la connexion mais ne répond jamais à
 aucune requête, même une route qui ne fait aucun appel externe. Un vrai
 Node 22+ est la seule solution fiable trouvée.
 
-## Installation
+## Installation ![Installation](https://img.shields.io/badge/Installation-3ddc84?style=flat-square)
 
 ```bash
 bun install
 ```
 
-## Configurer SimBrief
+## Configurer SimBrief ![SimBrief](https://img.shields.io/badge/SimBrief-4ea1ff?style=flat-square)
 
 ```bash
 cp worker/.dev.vars.example worker/.dev.vars
@@ -119,7 +119,7 @@ Pour `!eta` (facultatif) : renseigne aussi `VATSIM_CID` et/ou `IVAO_VID` dans
 visible sur my.vatsim.net / ton profil ivao.aero). Laisse le champ vide si tu
 ne voles pas sur ce réseau, `!eta` ignorera simplement celui qui manque.
 
-## Développement local
+## Développement local ![Dev](https://img.shields.io/badge/Dev-3ddc84?style=flat-square)
 
 ```bash
 bun run dev
@@ -155,7 +155,7 @@ URLs configurables via `ui/.env.local` (voir `ui/.env.example`).
 On peut aussi vérifier une route directement, sans le dashboard :
 `http://localhost:8787/plandevol`.
 
-## Bot Twitch custom
+## Bot Twitch custom ![Bot Twitch](https://img.shields.io/badge/Bot%20Twitch-9146ff?style=flat-square)
 
 ### 1. Créer une appli Twitch (une fois)
 
@@ -282,7 +282,7 @@ Les messages sont stockés dans `bot/announcements.json` (non commité, voir
 `bot/announcements.example.json` pour le format si tu préfères éditer à la
 main).
 
-## Déploiement
+## Déploiement ![Déploiement](https://img.shields.io/badge/D%C3%A9ploiement-00b8a9?style=flat-square)
 
 ```bash
 ./scripts/with-node22.sh bunx wrangler login
@@ -290,7 +290,7 @@ main).
 bun run deploy:worker
 ```
 
-## Routes exposées par le Worker
+## Routes exposées par le Worker ![Worker](https://img.shields.io/badge/Worker-4ea1ff?style=flat-square)
 
 | Route           | Description                                  |
 | ---------------- | --------------------------------------------- |
@@ -301,7 +301,7 @@ bun run deploy:worker
 | `/eta`           | ETA en direct via IVAO ou VATSIM (whazzup/data feed) |
 | `/api/preview`   | JSON structuré : les 5 commandes + données brutes |
 
-## Routes exposées par le bot (`http://localhost:4242`)
+## Routes exposées par le bot (`http://localhost:4242`) ![Bot](https://img.shields.io/badge/Bot-9146ff?style=flat-square)
 
 | Route                | Méthode | Description                                    |
 | --------------------- | ------- | ----------------------------------------------- |
@@ -316,7 +316,7 @@ bun run deploy:worker
 | `/api/announcements/schedule` | GET | `{ nextAt }` : timestamp du prochain envoi programmé |
 | `/api/announcements/test` | POST | Envoie tout de suite le prochain message, sans décaler le minutage |
 
-## À vérifier / limites connues
+## À vérifier / limites connues ![Limites](https://img.shields.io/badge/Limites-f5a623?style=flat-square)
 
 - Les champs SimBrief (`worker/simbrief.js`) ont été vérifiés contre un appel
   réel (`userid=57166`, sept. 2026) : `origin.icao_code`, `aircraft.icaocode`,
