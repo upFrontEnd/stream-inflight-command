@@ -1,67 +1,68 @@
 # stream-inflight-command
 
-Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!vol`, `!appareil`,
+Bot Twitch custom : commandes de vol (`!vol`, `!appareil`,
 `!plandevol`, `!meteo`, `!eta`) alimentées automatiquement par le plan de vol SimBrief
-du jour, et commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
-connecté au chat, plus un dashboard pour vérifier les données et gérer les
-sons avant le live.
+du jour. 
+
+Commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
+connecté au chat Twitch, plus un dashboard pour vérifier les données avant le live.
 
 ## Structure
 
 ```
 stream-command/
-├── package.json                            dépendances (wrangler, vite, sass)
-├── .nvmrc                                  impose Node 22+ (requis par wrangler)
+├── package.json                            Dépendances (wrangler, vite, sass)
+├── .nvmrc                                  Impose Node 22+ (requis par wrangler)
 ├── worker/
-│   ├── wrangler.toml                       config Cloudflare Worker
-│   ├── .dev.vars.example                   gabarit de variables locales
-│   ├── index.js                            router : une route par commande
-│   ├── simbrief.js                         appel + parsing de l'API SimBrief
-│   ├── metar.js                            appel + parsing de l'API METAR (aviationweather.gov)
-│   ├── vatsim.js                           recherche un pilote sur le flux public VATSIM
-│   ├── ivao.js                             recherche un pilote sur le flux public IVAO (Whazzup)
-│   ├── eta.js                              calcule et formate l'ETA (!eta)
-│   └── commands.js                         formatage du texte renvoyé par chaque commande
+│   ├── wrangler.toml                       Config Cloudflare Worker
+│   ├── .dev.vars.example                   Gabarit de variables locales
+│   ├── index.js                            Router : une route par commande
+│   ├── simbrief.js                         Appel + parsing de l'API SimBrief
+│   ├── metar.js                            Appel + parsing de l'API METAR (aviationweather.gov)
+│   ├── vatsim.js                           Recherche un pilote sur le flux public VATSIM
+│   ├── ivao.js                             Recherche un pilote sur le flux public IVAO (Whazzup)
+│   ├── eta.js                              Calcule et formate l'ETA (!eta)
+│   └── commands.js                         Formatage du texte renvoyé par chaque commande
 ├── ui/
-│   ├── vite.config.js                      config Vite (root fixé sur ce dossier, port 5183)
-│   ├── .env.example                        gabarit de variables locales
+│   ├── vite.config.js                      Config Vite (root fixé sur ce dossier, port 5183)
+│   ├── .env.example                        Gabarit de variables locales
 │   ├── index.html
-│   └── src/                                dashboard (JS + SCSS)
+│   └── src/                                Dashboard (JS + SCSS)
 │       ├── img/
-│       │   └── logo_Lettre-1-V2-blanc.png  logo Skyflyer Aviation (fond sombre)
+│       │   └── logo_Lettre-1-V2-blanc.png  Logo Skyflyer Aviation (fond sombre)
 │       ├── js/
-│       │   ├── main.js                     coquille + onglets (Vol / Sons / Annonces)
-│       │   ├── api.js                      appels au Worker et au bot
+│       │   ├── main.js                     Coquille + onglets (Vol / Sons / Annonces)
+│       │   ├── api.js                      Appels au Worker et au bot
 │       │   ├── icons.js                    SVG des icônes d'onglets
-│       │   ├── vol-panel.js                onglet Vol : preview des commandes SimBrief
-│       │   ├── sounds-panel.js             onglet Sons : liste + ajout de sons
-│       │   └── announcements-panel.js      onglet Annonces : liste + ajout de messages
+│       │   ├── vol-panel.js                Onglet Vol : preview des commandes SimBrief
+│       │   ├── sounds-panel.js             Onglet Sons : liste + ajout de sons
+│       │   └── announcements-panel.js      Onglet Annonces : liste + ajout de messages
 │       └── scss/
-│           ├── style.scss                  point d'entrée : @use des partiels ci-dessous
-│           ├── _base.scss                  variables CSS, reset, body
-│           ├── _layout.scss                en-tête, logo, onglets, icônes
-│           ├── _forms.scss                 boutons, champs, dropzone (partagés)
-│           ├── _vol.scss                   cartes de commandes, panneau JSON brut
-│           ├── _sounds.scss                liste des sons, chips cliquables
-│           └── _announcements.scss         liste des messages d'annonce
+│           ├── style.scss                  Point d'entrée : @use des partiels ci-dessous
+│           ├── _base.scss                  Variables CSS, reset, body
+│           ├── _layout.scss                En-tête, logo, onglets, icônes
+│           ├── _forms.scss                 Boutons, champs, dropzone (partagés)
+│           ├── _vol.scss                   Cartes de commandes, panneau JSON brut
+│           ├── _sounds.scss                Liste des sons, chips cliquables
+│           └── _announcements.scss         Liste des messages d'annonce
 └── bot/
-    ├── .env.example                        gabarit de variables locales
-    ├── announcements.example.json          gabarit (le vrai fichier n'est pas commité)
+    ├── .env.example                        Gabarit de variables locales
+    ├── announcements.example.json          Gabarit (le vrai fichier n'est pas commité)
     ├── src/
-    │   ├── get-token.js                    génère le token OAuth (Device Code Flow Twitch)
-    │   ├── index.js                        connexion Twitch + boucle de commandes
-    │   ├── worker-commands.js              relaie !vol/!appareil/!plandevol/!meteo/!eta vers le Worker
-    │   ├── load-commands.js                scanne bot/sounds/ pour construire les commandes son
-    │   ├── commands-store.js               état partagé, rechargeable sans redémarrer le bot
-    │   ├── announcements-store.js          lecture/écriture de bot/announcements.json
-    │   ├── announce-schedule.js            échéance du prochain envoi, partagée avec server.js
-    │   ├── permissions.js                  viewer / subscriber / moderator
+    │   ├── get-token.js                    Génère le token OAuth (Device Code Flow Twitch)
+    │   ├── index.js                        Connexion Twitch + boucle de commandes
+    │   ├── worker-commands.js              Relaie !vol/!appareil/!plandevol/!meteo/!eta vers le Worker
+    │   ├── load-commands.js                Scanne bot/sounds/ pour construire les commandes son
+    │   ├── commands-store.js               État partagé, rechargeable sans redémarrer le bot
+    │   ├── announcements-store.js          Lecture/écriture de bot/announcements.json
+    │   ├── announce-schedule.js            Échéance du prochain envoi, partagée avec server.js
+    │   ├── permissions.js                  Viewer / subscriber / moderator
     │   └── server.js                       WebSocket + fichiers statiques + API sons/annonces (Bun natif)
-    ├── overlay/                            page à ajouter comme Browser Source dans OBS
-    └── sounds/                             fichiers audio, un dossier par rôle (non commités)
-        ├── all/                            accessible à tous
-        ├── sub/                            subs + modos + streamer
-        └── modo/                           modos + streamer
+    ├── overlay/                            Page à ajouter comme Browser Source dans OBS
+    └── sounds/                             Fichiers audio, un dossier par rôle (non commités)
+        ├── all/                            Accessible à tous
+        ├── sub/                            Subs + modos + streamer
+        └── modo/                           Modos + streamer
 ```
 
 Le Worker interroge SimBrief + aviationweather.gov et expose une route texte
