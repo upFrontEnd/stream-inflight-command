@@ -14,9 +14,10 @@ stream-command/
 ├── package.json                            Dépendances (wrangler, vite, sass)
 ├── .nvmrc                                  Impose Node 22+ (requis par wrangler)
 ├── scripts/
-│   ├── with-node22.sh                      Bascule sur Node 22 via nvm avant chaque commande
-│   ├── bot-watchdog.sh                     Relance le bot automatiquement s'il plante
-│   └── streamdeck-start.command            Bouton Stream Deck : lance `bun run dev`
+│   ├── run-with-node22.mjs                 Bascule sur Node 22 (nvm) avant chaque commande
+│   ├── bot-watchdog.mjs                    Relance le bot automatiquement s'il plante
+│   ├── streamdeck-start.command            Bouton Stream Deck (macOS) : lance `bun run dev`
+│   └── streamdeck-start.bat                Bouton Stream Deck (Windows) : lance `bun run dev`
 ├── worker/
 │   ├── wrangler.toml                       Config Cloudflare Worker
 │   ├── .dev.vars.example                   Gabarit de variables locales
@@ -82,15 +83,19 @@ tout passe par `bun run dev` / `bun run bot`.
 
 ## <img src="docs/banners/prerequis.png" alt="Prérequis : Node 22+" height="28" />
 
-Wrangler exige Node 22+. Si Node 22 n'est pas encore installé :
+Wrangler exige Node 22+, et [Bun](https://bun.sh) pour tout le reste.
 
-```bash
-nvm install 22
-```
+**macOS/Linux** : si tu as [nvm](https://github.com/nvm-sh/nvm), `nvm install 22`
+suffit (le `.nvmrc` du projet indique 22). Tous les scripts (`bun run
+dev:worker`, `bun run build:ui`, etc.) passent par `scripts/run-with-node22.mjs`,
+qui bascule automatiquement sur Node 22 via nvm avant de lancer la vraie
+commande, pas besoin de faire `nvm use` toi-même.
 
-Tous les scripts (`bun run dev:worker`, `bun run build:ui`, etc.) passent par
-`scripts/with-node22.sh`, qui bascule automatiquement sur Node 22 via nvm
-avant de lancer la vraie commande, pas besoin de faire `nvm use` toi-même.
+**Windows** : installe directement une version récente de Node
+([nodejs.org](https://nodejs.org)) — sur une machine sans autre Node installé,
+pas besoin de nvm/gestionnaire de version, ça marche directement. Le même
+`scripts/run-with-node22.mjs` détecte que le Node du PATH est déjà en 22+ et
+lance la commande sans rien basculer.
 
 ⚠️ Ne pas contourner ça en forçant `wrangler` à tourner sous le runtime de Bun
 (ex: un `bunfig.toml` avec `[run] bun = true`) : testé, ça fait planter le
@@ -140,11 +145,16 @@ bun run dev:worker   # http://localhost:8787
 bun run dev:ui        # http://localhost:5183
 ```
 
-**Bouton Stream Deck** : `scripts/streamdeck-start.command` lance `bun run dev`
-dans un Terminal. Dans l'appli Stream Deck, ajoute une action **Système →
-Ouvrir**, choisis ce fichier comme cible. Le premier lancement, macOS
-(Gatekeeper) affiche une fois une confirmation de sécurité avant d'exécuter le
-script ; les suivants se font directement au clic sur le bouton.
+**Bouton Stream Deck** : dans l'appli Stream Deck, ajoute une action
+**Système → Ouvrir**, choisis le fichier correspondant à ton OS comme cible.
+
+- **Windows** : `scripts/streamdeck-start.bat`
+- **macOS** : `scripts/streamdeck-start.command` (le premier lancement,
+  Gatekeeper affiche une fois une confirmation de sécurité avant d'exécuter le
+  script ; les suivants se font directement au clic sur le bouton)
+
+Les deux ouvrent une fenêtre et lancent `bun run dev` dedans, à laisser
+ouverte pour voir les logs / faire Ctrl+C.
 
 Le dashboard a trois onglets :
 
@@ -238,7 +248,7 @@ bun run bot
 Affiche `Overlay sons dispo sur http://localhost:4242` une fois connecté au
 chat.
 
-`bun run bot` passe par `scripts/bot-watchdog.sh` : si le bot plante (token
+`bun run bot` passe par `scripts/bot-watchdog.mjs` : si le bot plante (token
 Twitch expiré, coupure réseau...), il redémarre automatiquement avec un délai
 croissant (5s, 10s, 20s... jusqu'à 60s max) plutôt que de rester éteint en
 silence jusqu'à ce qu'on s'en rende compte en plein live. Un token expiré fera
@@ -295,8 +305,8 @@ main).
 ## <img src="docs/banners/deploiement.png" alt="Déploiement" height="28" />
 
 ```bash
-./scripts/with-node22.sh bunx wrangler login
-./scripts/with-node22.sh bunx wrangler secret put SIMBRIEF_USERNAME --config worker/wrangler.toml
+bun scripts/run-with-node22.mjs bunx wrangler login
+bun scripts/run-with-node22.mjs bunx wrangler secret put SIMBRIEF_USERNAME --config worker/wrangler.toml
 bun run deploy:worker
 ```
 
@@ -344,6 +354,6 @@ bun run deploy:worker
   pour ce volume d'usage.
 - Le token OAuth Twitch (`bot/.env`) n'est pas rafraîchi automatiquement et
   finit par expirer (aucune logique de `refresh_token` implémentée). Le bot
-  plante alors avec `Login authentication failed` ; `scripts/bot-watchdog.sh`
+  plante alors avec `Login authentication failed` ; `scripts/bot-watchdog.mjs`
   continue de retenter en arrière-plan, mais il faut régénérer un nouveau
   token (`bun run bot:token`) pour que ça reparte.
