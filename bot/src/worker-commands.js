@@ -5,6 +5,7 @@ const ROUTES = {
   '!appareil': '/appareil',
   '!plandevol': '/plandevol',
   '!meteo': '/meteo',
+  '!eta': '/eta',
 };
 
 export function isWorkerCommand(command) {

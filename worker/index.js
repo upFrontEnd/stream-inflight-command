@@ -1,6 +1,7 @@
 import { fetchSimbriefData } from './simbrief.js';
 import { fetchMetars, formatMeteoText } from './metar.js';
 import { formatVol, formatAppareil, formatPlandevol } from './commands.js';
+import { findEta, formatEtaText } from './eta.js';
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
@@ -31,7 +32,7 @@ async function buildPreview(env) {
     simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
   } catch (err) {
     const failed = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
-    return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, raw: null };
+    return { vol: failed, appareil: failed, plandevol: failed, meteo: failed, eta: failed, raw: null };
   }
 
   const vol = { ok: true, text: formatVol(simbrief) };
@@ -46,7 +47,15 @@ async function buildPreview(env) {
     meteo = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
   }
 
-  return { vol, appareil, plandevol, meteo, raw: simbrief };
+  let eta;
+  try {
+    const result = await findEta(env, simbrief.destination);
+    eta = { ok: true, text: formatEtaText(result, simbrief.destination.icao) };
+  } catch (err) {
+    eta = { ok: false, text: `Erreur : ${errorMessage(err)}`, error: errorMessage(err) };
+  }
+
+  return { vol, appareil, plandevol, meteo, eta, raw: simbrief };
 }
 
 export default {
@@ -77,6 +86,12 @@ export default {
         const simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
         const metars = await fetchMetars([simbrief.origin.icao, simbrief.destination.icao]);
         return textResponse(formatMeteoText(metars));
+      }
+
+      if (url.pathname === '/eta') {
+        const simbrief = await fetchSimbriefData(env.SIMBRIEF_USERNAME);
+        const result = await findEta(env, simbrief.destination);
+        return textResponse(formatEtaText(result, simbrief.destination.icao));
       }
     } catch (err) {
       return textResponse(`Erreur : ${errorMessage(err)}`);

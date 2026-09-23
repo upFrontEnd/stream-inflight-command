@@ -1,7 +1,7 @@
 # stream-inflight-command
 
 Bot Twitch custom pour SkyflyerAviation : commandes de vol (`!vol`, `!appareil`,
-`!plandevol`, `!meteo`) alimentées automatiquement par le plan de vol SimBrief
+`!plandevol`, `!meteo`, `!eta`) alimentées automatiquement par le plan de vol SimBrief
 du jour, et commandes son par rôle (viewer/sub/modo), le tout dans un seul bot
 connecté au chat, plus un dashboard pour vérifier les données et gérer les
 sons avant le live.
@@ -18,6 +18,9 @@ stream-command/
 │   ├── index.js                            router : une route par commande
 │   ├── simbrief.js                         appel + parsing de l'API SimBrief
 │   ├── metar.js                            appel + parsing de l'API METAR (aviationweather.gov)
+│   ├── vatsim.js                           recherche un pilote sur le flux public VATSIM
+│   ├── ivao.js                             recherche un pilote sur le flux public IVAO (Whazzup)
+│   ├── eta.js                              calcule et formate l'ETA (!eta)
 │   └── commands.js                         formatage du texte renvoyé par chaque commande
 ├── ui/
 │   ├── vite.config.js                      config Vite (root fixé sur ce dossier, port 5183)
@@ -47,7 +50,7 @@ stream-command/
     ├── src/
     │   ├── get-token.js                    génère le token OAuth (Device Code Flow Twitch)
     │   ├── index.js                        connexion Twitch + boucle de commandes
-    │   ├── worker-commands.js              relaie !vol/!appareil/!plandevol/!meteo vers le Worker
+    │   ├── worker-commands.js              relaie !vol/!appareil/!plandevol/!meteo/!eta vers le Worker
     │   ├── load-commands.js                scanne bot/sounds/ pour construire les commandes son
     │   ├── commands-store.js               état partagé, rechargeable sans redémarrer le bot
     │   ├── announcements-store.js          lecture/écriture de bot/announcements.json
@@ -66,7 +69,7 @@ par commande (ex: `/plandevol`). C'est une brique indépendante, testable
 seule via curl/navigateur.
 
 Le bot (`bot/`) est un bot Twitch 100% custom (`tmi.js`) qui gère tout côté
-chat : il relaie `!vol`/`!appareil`/`!plandevol`/`!meteo` vers le Worker et poste la
+chat : il relaie `!vol`/`!appareil`/`!plandevol`/`!meteo`/`!eta` vers le Worker et poste la
 réponse dans le chat, et quand quelqu'un tape une commande son autorisée pour
 son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
 OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers :
@@ -109,6 +112,11 @@ automatiquement si c'est un `userid` numérique ou un `username` texte.
 Tant qu'aucun plan de vol n'a été généré sur simbrief.com (bouton "Generate
 Flight Plan"), les commandes renverront `Erreur : No flight plan on file for
 the specified user`, c'est normal, pas un bug.
+
+Pour `!eta` (facultatif) : renseigne aussi `VATSIM_CID` et/ou `IVAO_VID` dans
+`worker/.dev.vars` (ton identifiant numérique de compte, pas ton callsign,
+visible sur my.vatsim.net / ton profil ivao.aero). Laisse le champ vide si tu
+ne voles pas sur ce réseau, `!eta` ignorera simplement celui qui manque.
 
 ## Développement local
 
@@ -235,7 +243,7 @@ coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
 autres sources, largeur/hauteur peu importantes (rien n'est visible, juste
 audio). Le fond est transparent.
 
-### 7. Commandes de vol (!vol, !appareil, !plandevol, !meteo)
+### 7. Commandes de vol (!vol, !appareil, !plandevol, !meteo, !eta)
 
 Le bot relaie automatiquement ces commandes vers le Worker et poste sa
 réponse dans le chat, aucune config supplémentaire si le Worker tourne en
@@ -243,6 +251,12 @@ local (`bun run dev:worker`, ou `bun run dev` qui lance tout ensemble) :
 `bot/.env` pointe par défaut sur `WORKER_URL=http://localhost:8787`. Une fois
 le Worker déployé sur Cloudflare, change cette valeur pour l'URL publique du
 Worker afin que le bot fonctionne même quand ta machine ne tourne que le bot.
+
+`!eta` cherche ta session en direct, d'abord sur IVAO (distance restante
+fournie par leur API, pas de calcul à faire), puis sur VATSIM (distance
+calculée nous-mêmes entre ta position live et les coordonnées de destination
+du plan SimBrief) si IVAO ne te trouve pas. Si tu n'es connecté sur aucun des
+deux, le bot répond simplement que tu n'es pas en vol.
 
 Teste en tapant une des commandes dans ton propre chat (sur ta chaîne, en tant
 que streamer tu passes toujours en `moderator`).
@@ -283,7 +297,8 @@ bun run deploy:worker
 | `/appareil`      | Type d'appareil, immatriculation              |
 | `/plandevol`     | Route détaillée : départ/arrivée, route, distance |
 | `/meteo`         | METAR brut départ/arrivée (aviationweather.gov) |
-| `/api/preview`   | JSON structuré : les 4 commandes + données brutes |
+| `/eta`           | ETA en direct via IVAO ou VATSIM (whazzup/data feed) |
+| `/api/preview`   | JSON structuré : les 5 commandes + données brutes |
 
 ## Routes exposées par le bot (`http://localhost:4242`)
 

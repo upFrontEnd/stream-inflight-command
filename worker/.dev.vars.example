@@ -1,1 +1,7 @@
 SIMBRIEF_USERNAME=your_simbrief_username
+
+# Pour !eta : identifiants numériques (pas le callsign) de tes comptes
+# VATSIM/IVAO. Laisse vide si tu ne voles pas sur ce réseau, !eta ignorera
+# simplement celui qui manque.
+VATSIM_CID=your_vatsim_cid
+IVAO_VID=your_ivao_vid

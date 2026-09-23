@@ -5,6 +5,7 @@ const COMMANDS = [
   { key: 'appareil', label: '!appareil' },
   { key: 'plandevol', label: '!plandevol' },
   { key: 'meteo', label: '!meteo' },
+  { key: 'eta', label: '!eta' },
 ];
 
 function escapeHtml(str) {

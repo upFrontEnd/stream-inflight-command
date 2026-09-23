@@ -17,7 +17,12 @@ export async function fetchSimbriefData(pilotId) {
 
   return {
     origin: { icao: data.origin.icao_code, name: data.origin.name ?? '' },
-    destination: { icao: data.destination.icao_code, name: data.destination.name ?? '' },
+    destination: {
+      icao: data.destination.icao_code,
+      name: data.destination.name ?? '',
+      lat: Number(data.destination.pos_lat),
+      lon: Number(data.destination.pos_long),
+    },
     aircraft: {
       name: data.aircraft?.name ?? 'Appareil inconnu',
       icao: data.aircraft?.icaocode ?? '',
