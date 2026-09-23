@@ -3,6 +3,7 @@ import { mountVolPanel } from './vol-panel.js';
 import { mountSoundsPanel } from './sounds-panel.js';
 import { mountAnnouncementsPanel } from './announcements-panel.js';
 import { PLANE_ICON, SOUND_ICON, MESSAGE_ICON } from './icons.js';
+import logoUrl from '../img/logo_Lettre-1-V2-blanc.png';
 
 const TABS = [
   { id: 'vol', label: 'Vol', icon: PLANE_ICON, mount: mountVolPanel },
@@ -15,8 +16,8 @@ const app = document.querySelector('#app');
 app.innerHTML = `
   <main class="app">
     <header class="app__header">
-      <div>
-        <h1>Skyflyer Aviation Stream</h1>
+      <div class="app__brand">
+        <img src="${logoUrl}" alt="Skyflyer Aviation" class="app__logo" />
         <p class="app__subtitle">Dashboard de gestion du stream</p>
       </div>
       <nav class="tabs" id="tabs">
