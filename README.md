@@ -13,6 +13,10 @@ connecté au chat Twitch, plus un dashboard pour vérifier les données avant le
 stream-command/
 ├── package.json                            Dépendances (wrangler, vite, sass)
 ├── .nvmrc                                  Impose Node 22+ (requis par wrangler)
+├── scripts/
+│   ├── with-node22.sh                      Bascule sur Node 22 via nvm avant chaque commande
+│   ├── bot-watchdog.sh                     Relance le bot automatiquement s'il plante
+│   └── streamdeck-start.command            Bouton Stream Deck : lance `bun run dev`
 ├── worker/
 │   ├── wrangler.toml                       Config Cloudflare Worker
 │   ├── .dev.vars.example                   Gabarit de variables locales
@@ -125,9 +129,9 @@ ne voles pas sur ce réseau, `!eta` ignorera simplement celui qui manque.
 bun run dev
 ```
 
-Lance le Worker (`http://localhost:8787`) et le dashboard (`http://localhost:5183`,
-s'ouvre automatiquement) en parallèle dans un seul terminal, logs préfixés
-`[worker]`/`[ui]`. Ctrl+C arrête les deux.
+Lance le Worker (`http://localhost:8787`), le dashboard (`http://localhost:5183`,
+s'ouvre automatiquement) et le bot en parallèle dans un seul terminal, logs
+préfixés `[worker]`/`[ui]`/`[bot]`. Ctrl+C arrête les trois.
 
 Besoin de les lancer séparément (ex: pour ne voir que les logs de l'un) :
 
@@ -135,6 +139,12 @@ Besoin de les lancer séparément (ex: pour ne voir que les logs de l'un) :
 bun run dev:worker   # http://localhost:8787
 bun run dev:ui        # http://localhost:5183
 ```
+
+**Bouton Stream Deck** : `scripts/streamdeck-start.command` lance `bun run dev`
+dans un Terminal. Dans l'appli Stream Deck, ajoute une action **Système →
+Ouvrir**, choisis ce fichier comme cible. Le premier lancement, macOS
+(Gatekeeper) affiche une fois une confirmation de sécurité avant d'exécuter le
+script ; les suivants se font directement au clic sur le bouton.
 
 Le dashboard a trois onglets :
 
