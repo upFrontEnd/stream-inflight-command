@@ -36,6 +36,13 @@
     white-space: nowrap;
   }
 
+  &__actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  &__edit,
   &__remove {
     flex-shrink: 0;
     background: transparent;
@@ -48,8 +55,57 @@
     line-height: 1;
 
     &:hover {
-      border-color: var(--error);
-      color: var(--error);
+      border-color: var(--accent);
+      color: var(--accent);
     }
+  }
+
+  &__remove:hover {
+    border-color: var(--error);
+    color: var(--error);
+  }
+
+  &--editing {
+    align-items: flex-start;
+  }
+
+  &__edit-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 0.5rem 0.65rem;
+    font: inherit;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    resize: vertical;
+
+    &:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
+  }
+
+  &__save,
+  &__cancel {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  &__save {
+    background: var(--accent);
+    color: #0b0d11;
+  }
+
+  &__cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
   }
 }

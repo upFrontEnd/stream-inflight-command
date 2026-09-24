@@ -1,4 +1,4 @@
-import { fetchAnnouncements, addAnnouncement, deleteAnnouncement, fetchAnnounceSchedule, testAnnouncement } from './api.js';
+import { fetchAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement, fetchAnnounceSchedule, testAnnouncement } from './api.js';
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -16,6 +16,7 @@ function formatCountdown(ms) {
 
 export function mountAnnouncementsPanel(root) {
   root.innerHTML = `
+    <p id="live-status" class="status"></p>
     <div class="panel__toolbar">
       <button type="button" id="test-announce" class="button">Tester maintenant</button>
     </div>
@@ -35,24 +36,44 @@ export function mountAnnouncementsPanel(root) {
     <ul class="announce-list" id="announce-list"></ul>
   `;
 
+  const liveStatusEl = root.querySelector('#live-status');
   const testBtn = root.querySelector('#test-announce');
   const form = root.querySelector('#announce-form');
   const input = root.querySelector('#announce-input');
   const statusEl = root.querySelector('#announce-status');
   const listEl = root.querySelector('#announce-list');
 
+  // id du message en cours d'édition (un seul à la fois) : renderList()
+  // affiche sa ligne sous forme de formulaire au lieu du texte + boutons.
+  let editingId = null;
+
+  function renderRow(a) {
+    return `
+      <li class="announce-item" data-id="${a.id}">
+        <span class="announce-item__text">${escapeHtml(a.text)}</span>
+        <span class="announce-item__actions">
+          <button type="button" class="announce-item__edit" data-id="${a.id}" title="Modifier" aria-label="Modifier">✏️</button>
+          <button type="button" class="announce-item__remove" data-id="${a.id}" title="Supprimer" aria-label="Supprimer">✕</button>
+        </span>
+      </li>
+    `;
+  }
+
+  function renderEditRow(a) {
+    return `
+      <li class="announce-item announce-item--editing" data-id="${a.id}">
+        <textarea class="announce-item__edit-input" rows="2">${escapeHtml(a.text)}</textarea>
+        <span class="announce-item__actions">
+          <button type="button" class="announce-item__save" data-id="${a.id}">Enregistrer</button>
+          <button type="button" class="announce-item__cancel" data-id="${a.id}">Annuler</button>
+        </span>
+      </li>
+    `;
+  }
+
   function renderList(items) {
     listEl.innerHTML = items.length
-      ? items
-          .map(
-            (a) => `
-            <li class="announce-item">
-              <span class="announce-item__text">${escapeHtml(a.text)}</span>
-              <button type="button" class="announce-item__remove" data-id="${a.id}" title="Supprimer" aria-label="Supprimer">✕</button>
-            </li>
-          `,
-          )
-          .join('')
+      ? items.map((a) => (a.id === editingId ? renderEditRow(a) : renderRow(a))).join('')
       : '<li class="status">Aucun message pour l\'instant.</li>';
   }
 
@@ -73,7 +94,8 @@ export function mountAnnouncementsPanel(root) {
 
   function tickCountdown() {
     let badge = listEl.querySelector('.announce-item__countdown');
-    const target = nextId ? listEl.querySelector(`.announce-item__remove[data-id="${nextId}"]`)?.closest('.announce-item') : null;
+    const match = nextId ? listEl.querySelector(`.announce-item[data-id="${nextId}"]`) : null;
+    const target = match?.classList.contains('announce-item--editing') ? null : match; // pas de badge sur une ligne en édition (pas de .announce-item__text)
 
     if (!target) {
       badge?.remove();
@@ -93,6 +115,9 @@ export function mountAnnouncementsPanel(root) {
       const data = await fetchAnnounceSchedule();
       nextAt = data.nextAt;
       nextId = data.nextId;
+      liveStatusEl.textContent = data.live
+        ? '🔴 En live : les annonces tournent automatiquement.'
+        : '⚫ Hors live : les annonces automatiques reprendront dès la détection du live. "Tester maintenant" fonctionne quand même.';
       tickCountdown();
     } catch {
       // pas critique : le badge garde juste sa dernière valeur connue
@@ -139,15 +164,46 @@ export function mountAnnouncementsPanel(root) {
   });
 
   listEl.addEventListener('click', async (event) => {
-    const btn = event.target.closest('.announce-item__remove');
-    if (!btn) return;
-
-    try {
-      await deleteAnnouncement(btn.dataset.id);
+    const editBtn = event.target.closest('.announce-item__edit');
+    if (editBtn) {
+      editingId = editBtn.dataset.id;
       await loadList();
-    } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : 'Erreur inconnue';
-      statusEl.className = 'status status--error';
+      return;
+    }
+
+    const cancelBtn = event.target.closest('.announce-item__cancel');
+    if (cancelBtn) {
+      editingId = null;
+      await loadList();
+      return;
+    }
+
+    const saveBtn = event.target.closest('.announce-item__save');
+    if (saveBtn) {
+      const text = listEl.querySelector('.announce-item__edit-input')?.value.trim();
+      if (!text) return;
+
+      try {
+        await updateAnnouncement(saveBtn.dataset.id, text);
+        editingId = null;
+        await loadList();
+      } catch (err) {
+        statusEl.textContent = err instanceof Error ? err.message : 'Erreur inconnue';
+        statusEl.className = 'status status--error';
+      }
+      return;
+    }
+
+    const removeBtn = event.target.closest('.announce-item__remove');
+    if (removeBtn) {
+      try {
+        await deleteAnnouncement(removeBtn.dataset.id);
+        if (editingId === removeBtn.dataset.id) editingId = null;
+        await loadList();
+      } catch (err) {
+        statusEl.textContent = err instanceof Error ? err.message : 'Erreur inconnue';
+        statusEl.className = 'status status--error';
+      }
     }
   });
 

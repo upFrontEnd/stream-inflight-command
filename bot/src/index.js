@@ -5,8 +5,9 @@ import { startOverlayServer, broadcastPlay } from './server.js';
 import { playSoundFile } from './sound-player.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
-import { setNextAnnounceAt, consumeAnnounceIndex } from './announce-schedule.js';
+import { setNextAnnounceAt, consumeAnnounceIndex, setIsLive } from './announce-schedule.js';
 import { refreshAccessToken, persistTokens, scheduleAutoRefresh } from './twitch-auth.js';
+import { watchLiveStatus } from './live-status.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -16,9 +17,9 @@ const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.OVERLAY_PORT ?? 4242);
 const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
 
-if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL) {
+if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
   throw new Error(
-    'TWITCH_BOT_USERNAME, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
+    'TWITCH_BOT_USERNAME, TWITCH_CLIENT_ID, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
   );
 }
 
@@ -104,16 +105,44 @@ function scheduleNextAnnounce() {
   setNextAnnounceAt(Date.now() + ANNOUNCE_INTERVAL_MS);
 }
 
-scheduleNextAnnounce();
-setInterval(() => {
-  announceNext().catch((err) => console.error('[announcements] échec envoi :', err));
+// Le compte à rebours ne démarre que quand le stream est détecté en direct
+// (voir watchLiveStatus plus bas) : pas d'annonces qui partent tout seules
+// dans le chat pendant que tu prépares le live avant d'être visible.
+// "Tester maintenant" (onTestAnnouncement) reste utilisable à tout moment,
+// live ou pas, ce n'est pas concerné par ce timer.
+let announceTimer = null;
+
+function startAnnouncing() {
+  if (announceTimer) return;
+  setIsLive(true);
   scheduleNextAnnounce();
-}, ANNOUNCE_INTERVAL_MS);
+  announceTimer = setInterval(() => {
+    announceNext().catch((err) => console.error('[announcements] échec envoi :', err));
+    scheduleNextAnnounce();
+  }, ANNOUNCE_INTERVAL_MS);
+  console.log('[live] stream détecté en direct, annonces automatiques activées');
+}
+
+function stopAnnouncing() {
+  setIsLive(false);
+  setNextAnnounceAt(null);
+  console.log('[live] stream hors ligne, annonces automatiques en pause ("Tester maintenant" reste dispo)');
+  if (!announceTimer) return;
+  clearInterval(announceTimer);
+  announceTimer = null;
+}
 
 await client.connect();
 if (REFRESH_TOKEN && CLIENT_ID) {
   scheduleAutoRefresh(client, { clientId: CLIENT_ID });
 }
+watchLiveStatus({
+  clientId: CLIENT_ID,
+  getAccessToken: () => OAUTH_TOKEN,
+  channelLogin: CHANNEL,
+  onLive: startAnnouncing,
+  onOffline: stopAnnouncing,
+});
 startOverlayServer(OVERLAY_PORT, {
   // Bouton "Tester maintenant" du dashboard : envoie le prochain message de
   // la rotation tout de suite, sans toucher au minutage des envois planifiés.

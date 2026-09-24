@@ -24,6 +24,15 @@ export async function addAnnouncement(text) {
   return entry;
 }
 
+export async function updateAnnouncement(id, text) {
+  const list = await readAll();
+  const entry = list.find((a) => a.id === id);
+  if (!entry) return null;
+  entry.text = text;
+  await writeAll(list);
+  return entry;
+}
+
 export async function removeAnnouncement(id) {
   const list = await readAll();
   const next = list.filter((a) => a.id !== id);

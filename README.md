@@ -60,10 +60,12 @@ stream-command/
     │   ├── load-commands.js                Scanne bot/sounds/ pour construire les commandes son
     │   ├── commands-store.js               État partagé, rechargeable sans redémarrer le bot
     │   ├── announcements-store.js          Lecture/écriture de bot/announcements.json
-    │   ├── announce-schedule.js            Échéance du prochain envoi, partagée avec server.js
+    │   ├── announce-schedule.js            Échéance + statut live, partagés avec server.js
     │   ├── permissions.js                  Viewer / subscriber / moderator
     │   ├── server.js                       WebSocket + fichiers statiques + API sons/annonces (Bun natif)
-    │   └── sound-player.js                 Joue les sons nativement sur la machine du bot (afplay/Windows)
+    │   ├── sound-player.js                 Joue les sons nativement sur la machine du bot (afplay/Windows)
+    │   ├── twitch-auth.js                  Rafraîchit l'access token Twitch (expire au bout de 4h)
+    │   └── live-status.js                  Sonde l'API Helix pour savoir si le stream est en direct
     ├── overlay/                            Browser Source OBS optionnelle (overlay visuel futur, pas requise pour l'audio)
     └── sounds/                             Fichiers audio, un dossier par rôle (non commités)
         ├── all/                            Accessible à tous
@@ -208,11 +210,15 @@ bun run bot:token
 
 Ouvre la page affichée, connecte-toi avec le compte qui doit parler dans le
 chat (ton propre compte marche très bien pour commencer), autorise
-l'application. Le script affiche `TWITCH_OAUTH_TOKEN=oauth:...` à coller dans
-`bot/.env`. Révocable à tout moment depuis
+l'application. Le script enregistre directement `TWITCH_OAUTH_TOKEN` et
+`TWITCH_REFRESH_TOKEN` dans `bot/.env`, rien à copier-coller. Le bot se
+rafraîchit ensuite tout seul (`bot/src/twitch-auth.js`, l'access token
+n'est valable que 4h côté Twitch) : cette commande ne devrait plus être
+nécessaire ensuite, sauf si le bot reste éteint plus de 30 jours d'affilée.
+Révocable à tout moment depuis
 [twitch.tv/settings/connections](https://www.twitch.tv/settings/connections).
 
-`bot/.env` n'est jamais commité (ni `TWITCH_CLIENT_ID`, ni le token).
+`bot/.env` n'est jamais commité (ni `TWITCH_CLIENT_ID`, ni les tokens).
 
 ### 4. Ajouter des sons et des commandes
 
@@ -300,13 +306,22 @@ Le bot envoie un message dans le chat toutes les `ANNOUNCE_INTERVAL_MINUTES`
 messages configurés (pas deux fois le même de suite tant qu'il y en a
 plusieurs). Rien n'est envoyé si la liste est vide.
 
+Le compte à rebours ne démarre que quand le stream est détecté en direct
+(`bot/src/live-status.js` sonde l'API Helix `/streams` toutes les 60s) : pas
+d'annonces qui partent tout seules dans le chat pendant que tu prépares le
+live avant d'être visible sur Twitch. Dès que le live est détecté, le
+minutage repart de zéro ; s'il s'arrête, le compte à rebours se met en pause
+et reprend à zéro à la prochaine détection.
+
 **Depuis le dashboard** : onglet **Annonces** → tape un message, "Ajouter".
 Suppression en un clic sur le ✕. Pas de redémarrage du bot nécessaire, la
 liste est relue à chaque envoi programmé.
 
-Un compte à rebours affiche le temps avant le prochain envoi programmé, et le
+Un compte à rebours affiche le temps avant le prochain envoi programmé (visible
+uniquement en live) et un statut 🔴/⚫ indique si tu es détecté en direct. Le
 bouton **"Tester maintenant"** envoie tout de suite le prochain message de la
-rotation dans le vrai chat, sans décaler le minutage des envois suivants.
+rotation dans le vrai chat, à tout moment (live ou pas), sans décaler le
+minutage des envois automatiques.
 Pratique pour vérifier le rendu sans attendre 30 minutes.
 
 Les messages sont stockés dans `bot/announcements.json` (non commité, voir
@@ -336,7 +351,7 @@ bun run deploy:worker
 
 | Route                | Méthode | Description                                    |
 | --------------------- | ------- | ----------------------------------------------- |
-| `/`                    | GET     | Overlay à ajouter comme Browser Source dans OBS |
+| `/`                    | GET     | Overlay visuel optionnel (Browser Source OBS, pas requis pour l'audio) |
 | `/ws`                  | N/A     | WebSocket, diffuse les événements "play"        |
 | `/sounds/<catégorie>/<fichier>` | GET | Sert un fichier audio                    |
 | `/api/sounds`          | GET     | Liste les sons par catégorie (all/sub/modo)     |
@@ -344,7 +359,7 @@ bun run deploy:worker
 | `/api/announcements`   | GET     | Liste les messages d'annonce                    |
 | `/api/announcements`   | POST    | Ajoute un message (`{ "text": "..." }` en JSON) |
 | `/api/announcements/<id>` | DELETE | Supprime un message                          |
-| `/api/announcements/schedule` | GET | `{ nextAt }` : timestamp du prochain envoi programmé |
+| `/api/announcements/schedule` | GET | `{ nextAt, nextId, live }` : timestamp du prochain envoi (`null` hors live), message concerné, statut live |
 | `/api/announcements/test` | POST | Envoie tout de suite le prochain message, sans décaler le minutage |
 
 ## <img src="docs/banners/limites.png" alt="À vérifier / limites connues" height="28" />
@@ -354,6 +369,11 @@ bun run deploy:worker
   MediaPlayer via PowerShell) s'appuie sur une technique connue mais n'a pas
   pu être testée faute de machine Windows disponible ici, à vérifier sur la
   machine du live avant de compter dessus en direct.
+- Détection du live (`bot/src/live-status.js`) : la détection "hors live" a
+  été vérifiée en conditions réelles (Helix `/streams` répond correctement
+  avec le token du bot). Le passage "hors live → en live" (démarrage effectif
+  des annonces automatiques) n'a pas pu être testé faute de stream en cours
+  au moment du développement, à confirmer au prochain live.
 - Les champs SimBrief (`worker/simbrief.js`) ont été vérifiés contre un appel
   réel (`userid=57166`, sept. 2026) : `origin.icao_code`, `aircraft.icaocode`,
   `fuel.plan_ramp`, etc. sont corrects pour un plan de vol renseigné. Les

@@ -1,7 +1,7 @@
 import { readdir, mkdir } from 'node:fs/promises';
 import { reloadCommands } from './commands-store.js';
-import { listAnnouncements, addAnnouncement, removeAnnouncement } from './announcements-store.js';
-import { getNextAnnounceAt, getAnnounceIndex } from './announce-schedule.js';
+import { listAnnouncements, addAnnouncement, updateAnnouncement, removeAnnouncement } from './announcements-store.js';
+import { getNextAnnounceAt, getAnnounceIndex, getIsLive } from './announce-schedule.js';
 
 const clients = new Set();
 
@@ -14,7 +14,7 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 Mo
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'access-control-allow-headers': 'Content-Type',
 };
 
@@ -90,19 +90,34 @@ async function handleUpload(req) {
   return jsonResponse({ ok: true, command, category, file: `${command}${ext}` });
 }
 
+function readAnnouncementText(body) {
+  const text = typeof body?.text === 'string' ? body.text.trim() : '';
+  if (!text) return { error: 'text manquant' };
+  if (text.length > MAX_ANNOUNCEMENT_LENGTH) {
+    return { error: `message trop long (max ${MAX_ANNOUNCEMENT_LENGTH} caractères)` };
+  }
+  return { text };
+}
+
 async function handleAddAnnouncement(req) {
   const body = await req.json().catch(() => null);
-  const text = typeof body?.text === 'string' ? body.text.trim() : '';
-
-  if (!text) {
-    return jsonResponse({ error: 'text manquant' }, 400);
-  }
-  if (text.length > MAX_ANNOUNCEMENT_LENGTH) {
-    return jsonResponse({ error: `message trop long (max ${MAX_ANNOUNCEMENT_LENGTH} caractères)` }, 400);
-  }
+  const { text, error } = readAnnouncementText(body);
+  if (error) return jsonResponse({ error }, 400);
 
   const entry = await addAnnouncement(text);
   console.log(`[announcements] ajouté : "${text}"`);
+  return jsonResponse(entry);
+}
+
+async function handleUpdateAnnouncement(req, id) {
+  const body = await req.json().catch(() => null);
+  const { text, error } = readAnnouncementText(body);
+  if (error) return jsonResponse({ error }, 400);
+
+  const entry = await updateAnnouncement(id, text);
+  if (!entry) return jsonResponse({ error: 'message introuvable' }, 404);
+
+  console.log(`[announcements] modifié (${id}) : "${text}"`);
   return jsonResponse(entry);
 }
 
@@ -144,8 +159,9 @@ export function startOverlayServer(port, { onTestAnnouncement } = {}) {
 
       if (url.pathname === '/api/announcements/schedule' && req.method === 'GET') {
         const list = await listAnnouncements();
-        const nextId = list.length > 0 ? list[getAnnounceIndex() % list.length].id : null;
-        return jsonResponse({ nextAt: getNextAnnounceAt(), nextId });
+        const nextAt = getNextAnnounceAt();
+        const nextId = nextAt && list.length > 0 ? list[getAnnounceIndex() % list.length].id : null;
+        return jsonResponse({ nextAt, nextId, live: getIsLive() });
       }
 
       if (url.pathname === '/api/announcements/test' && req.method === 'POST') {
@@ -155,6 +171,16 @@ export function startOverlayServer(port, { onTestAnnouncement } = {}) {
           return jsonResponse({ ok: true, sent: entry ?? null });
         } catch (err) {
           console.error('[announcements] échec test :', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
+        }
+      }
+
+      if (url.pathname.startsWith('/api/announcements/') && req.method === 'PUT') {
+        const id = decodeURIComponent(url.pathname.slice('/api/announcements/'.length));
+        try {
+          return await handleUpdateAnnouncement(req, id);
+        } catch (err) {
+          console.error('[announcements] échec modification :', err);
           return jsonResponse({ error: err instanceof Error ? err.message : 'Erreur inconnue' }, 500);
         }
       }
