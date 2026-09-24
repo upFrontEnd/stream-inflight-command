@@ -1,6 +1,13 @@
 // Implémente le Device Code Grant Flow officiel de Twitch pour obtenir un
 // token OAuth sans dépendre d'un générateur tiers (twitchapps.com/tmi est
 // discontinué). Doc : https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#device-code-grant-flow
+//
+// L'access token obtenu n'est valable que 4h ; bot/src/twitch-auth.js s'en
+// sert avec le refresh token pour se renouveler tout seul ensuite, ce script
+// ne sert donc qu'une fois (sauf si le refresh token expire après 30 jours
+// d'inactivité du bot).
+import { persistTokens } from './twitch-auth.js';
+
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const SCOPES = 'chat:read chat:edit';
 
@@ -56,5 +63,7 @@ console.log('En attente de validation...');
 
 const token = await pollForToken(device_code, interval ?? 5);
 
-console.log('\n✅ Token obtenu. Colle ceci dans bot/.env :\n');
-console.log(`TWITCH_OAUTH_TOKEN=oauth:${token.access_token}\n`);
+await persistTokens({ accessToken: token.access_token, refreshToken: token.refresh_token });
+
+console.log('\n✅ Token obtenu et enregistré dans bot/.env (TWITCH_OAUTH_TOKEN + TWITCH_REFRESH_TOKEN).');
+console.log('Le bot se rafraîchira automatiquement ensuite, plus besoin de relancer cette commande.\n');

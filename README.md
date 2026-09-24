@@ -62,8 +62,9 @@ stream-command/
     │   ├── announcements-store.js          Lecture/écriture de bot/announcements.json
     │   ├── announce-schedule.js            Échéance du prochain envoi, partagée avec server.js
     │   ├── permissions.js                  Viewer / subscriber / moderator
-    │   └── server.js                       WebSocket + fichiers statiques + API sons/annonces (Bun natif)
-    ├── overlay/                            Page à ajouter comme Browser Source dans OBS
+    │   ├── server.js                       WebSocket + fichiers statiques + API sons/annonces (Bun natif)
+    │   └── sound-player.js                 Joue les sons nativement sur la machine du bot (afplay/Windows)
+    ├── overlay/                            Browser Source OBS optionnelle (overlay visuel futur, pas requise pour l'audio)
     └── sounds/                             Fichiers audio, un dossier par rôle (non commités)
         ├── all/                            Accessible à tous
         ├── sub/                            Subs + modos + streamer
@@ -77,8 +78,11 @@ seule via curl/navigateur.
 Le bot (`bot/`) est un bot Twitch 100% custom (`tmi.js`) qui gère tout côté
 chat : il relaie `!vol`/`!appareil`/`!plandevol`/`!meteo`/`!eta` vers le Worker et poste la
 réponse dans le chat, et quand quelqu'un tape une commande son autorisée pour
-son rôle, il pousse un événement en WebSocket vers un overlay affiché dans
-OBS, qui joue le son. Pas besoin de StreamElements ou d'un autre bot tiers :
+son rôle, il joue le fichier directement sur la machine qui fait tourner le
+bot (celle du live, sous Windows), sans passer par un navigateur : OBS le
+capte comme n'importe quel autre son via sa source "Audio de bureau", déjà
+présente sur la plupart des setups. Aucune Browser Source à ajouter dans OBS
+pour que le son sorte. Pas besoin de StreamElements ou d'un autre bot tiers :
 tout passe par `bun run dev` / `bun run bot`.
 
 ## <img src="docs/banners/prerequis.png" alt="Prérequis : Node 22+" height="28" />
@@ -257,12 +261,19 @@ quand même planter chaque tentative jusqu'à en régénérer un nouveau
 redémarrage manuel. Pour lancer le bot une seule fois sans surveillance (utile
 en debug) : `bun run bot:once`.
 
-### 6. Ajouter l'overlay dans OBS
+### 6. Lecture du son dans OBS
 
-Dans OBS : **Sources → + → Browser Source** → URL `http://localhost:4242`,
-coche "Contrôler l'audio via OBS" si tu veux le monitorer/mixer comme les
-autres sources, largeur/hauteur peu importantes (rien n'est visible, juste
-audio). Le fond est transparent.
+Rien à ajouter dans OBS : le bot joue chaque son directement sur la machine
+du live (`afplay` sous macOS en dev, lecteur natif Windows Media Foundation
+sous Windows en live, voir `bot/src/sound-player.js`), donc ça ressort par
+défaut sur la source "Audio de bureau" d'OBS comme n'importe quel autre son
+de l'OS. Vérifie juste que cette source n'est pas mute/exclue dans le mixeur
+audio d'OBS.
+
+`bot/overlay/` (Browser Source `http://localhost:4242`, fond transparent)
+reste disponible si tu veux un jour un overlay visuel synchronisé sur les
+sons (il reçoit toujours l'événement en WebSocket), mais n'est plus requis
+pour l'audio.
 
 ### 7. Commandes de vol (!vol, !appareil, !plandevol, !meteo, !eta)
 
@@ -338,6 +349,11 @@ bun run deploy:worker
 
 ## <img src="docs/banners/limites.png" alt="À vérifier / limites connues" height="28" />
 
+- Lecture audio native (`bot/src/sound-player.js`) : la branche macOS
+  (`afplay`) a été testée en conditions réelles. La branche Windows (WPF
+  MediaPlayer via PowerShell) s'appuie sur une technique connue mais n'a pas
+  pu être testée faute de machine Windows disponible ici, à vérifier sur la
+  machine du live avant de compter dessus en direct.
 - Les champs SimBrief (`worker/simbrief.js`) ont été vérifiés contre un appel
   réel (`userid=57166`, sept. 2026) : `origin.icao_code`, `aircraft.icaocode`,
   `fuel.plan_ramp`, etc. sont corrects pour un plan de vol renseigné. Les

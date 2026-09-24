@@ -2,12 +2,16 @@ import tmi from 'tmi.js';
 import { reloadCommands, getCommands } from './commands-store.js';
 import { hasPermission, getUserRole } from './permissions.js';
 import { startOverlayServer, broadcastPlay } from './server.js';
+import { playSoundFile } from './sound-player.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
 import { setNextAnnounceAt, consumeAnnounceIndex } from './announce-schedule.js';
+import { refreshAccessToken, persistTokens, scheduleAutoRefresh } from './twitch-auth.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
-const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
+const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+let OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
+const REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.OVERLAY_PORT ?? 4242);
 const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
@@ -16,6 +20,21 @@ if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL) {
   throw new Error(
     'TWITCH_BOT_USERNAME, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
   );
+}
+
+// L'access token Twitch expire au bout de 4h (voir bot/src/twitch-auth.js) :
+// on le rafraîchit systématiquement au démarrage via le refresh token plutôt
+// que de compter sur celui, potentiellement déjà expiré, lu depuis .env.
+if (REFRESH_TOKEN && CLIENT_ID) {
+  try {
+    const refreshed = await refreshAccessToken({ clientId: CLIENT_ID, refreshToken: REFRESH_TOKEN });
+    process.env.TWITCH_REFRESH_TOKEN = refreshed.refresh_token;
+    OAUTH_TOKEN = `oauth:${refreshed.access_token}`;
+    await persistTokens({ accessToken: refreshed.access_token, refreshToken: refreshed.refresh_token });
+    console.log('[auth] token Twitch rafraîchi automatiquement au démarrage');
+  } catch (err) {
+    console.error('[auth] échec du refresh au démarrage, tentative avec le token existant :', err.message);
+  }
 }
 
 const initialCommands = await reloadCommands();
@@ -61,6 +80,7 @@ client.on('message', (channel, userstate, message) => {
   }
 
   lastSoundAt = Date.now();
+  playSoundFile(sound.file);
   broadcastPlay(sound.file);
 });
 
@@ -91,11 +111,15 @@ setInterval(() => {
 }, ANNOUNCE_INTERVAL_MS);
 
 await client.connect();
+if (REFRESH_TOKEN && CLIENT_ID) {
+  scheduleAutoRefresh(client, { clientId: CLIENT_ID });
+}
 startOverlayServer(OVERLAY_PORT, {
   // Bouton "Tester maintenant" du dashboard : envoie le prochain message de
   // la rotation tout de suite, sans toucher au minutage des envois planifiés.
   onTestAnnouncement: () => announceNext(),
 });
-console.log(`Overlay sons dispo sur http://localhost:${OVERLAY_PORT} (à ajouter comme Browser Source dans OBS)`);
+console.log(`Sons joués nativement sur cette machine (aucune Browser Source à ajouter dans OBS)`);
+console.log(`Overlay visuel optionnel dispo sur http://localhost:${OVERLAY_PORT}`);
 console.log(`API de gestion des sons dispo sur http://localhost:${OVERLAY_PORT}/api/sounds`);
 console.log(`Annonces toutes les ${ANNOUNCE_INTERVAL_MS / 60_000} min, gérées sur http://localhost:${OVERLAY_PORT}/api/announcements`);
