@@ -50,6 +50,7 @@ export async function persistTokens({ accessToken, refreshToken }) {
 }
 
 async function upsertRailwayVar(name, value) {
+  console.log(`[railway] upsert ${name} | serviceId=${process.env.RAILWAY_SERVICE_ID} | envId=${process.env.RAILWAY_ENVIRONMENT_ID}`);
   const res = await fetch('https://backboard.railway.app/graphql/v2', {
     method: 'POST',
     headers: {
@@ -68,7 +69,9 @@ async function upsertRailwayVar(name, value) {
       },
     }),
   });
-  if (!res.ok) throw new Error(`Railway API ${res.status}`);
+  const data = await res.json();
+  if (!res.ok || data.errors) throw new Error(`Railway API: ${JSON.stringify(data.errors ?? res.status)}`);
+  console.log(`[railway] ${name} mis à jour`);
 }
 
 function setEnvVar(content, key, value) {
