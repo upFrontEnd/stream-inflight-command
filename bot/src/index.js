@@ -14,7 +14,7 @@ const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 let OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
 const REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
-const OVERLAY_PORT = Number(process.env.OVERLAY_PORT ?? 4242);
+const OVERLAY_PORT = Number(process.env.PORT ?? process.env.OVERLAY_PORT ?? 4242);
 const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
 
 if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
