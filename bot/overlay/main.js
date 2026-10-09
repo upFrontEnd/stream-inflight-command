@@ -11,7 +11,8 @@ if (isObsBrowserSource) {
 }
 
 function connect() {
-  const ws = new WebSocket(`ws://${location.host}/ws`);
+  const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
 
   ws.addEventListener('open', () => console.log('[overlay] connecté au bot'));
 
