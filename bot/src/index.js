@@ -23,20 +23,11 @@ if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
   );
 }
 
-// L'access token Twitch expire au bout de 4h (voir bot/src/twitch-auth.js) :
-// on le rafraîchit systématiquement au démarrage via le refresh token plutôt
-// que de compter sur celui, potentiellement déjà expiré, lu depuis .env.
-if (REFRESH_TOKEN && CLIENT_ID) {
-  try {
-    const refreshed = await refreshAccessToken({ clientId: CLIENT_ID, refreshToken: REFRESH_TOKEN });
-    process.env.TWITCH_REFRESH_TOKEN = refreshed.refresh_token;
-    OAUTH_TOKEN = `oauth:${refreshed.access_token}`;
-    await persistTokens({ accessToken: refreshed.access_token, refreshToken: refreshed.refresh_token });
-    console.log('[auth] token Twitch rafraîchi automatiquement au démarrage');
-  } catch (err) {
-    console.error('[auth] échec du refresh au démarrage, tentative avec le token existant :', err.message);
-  }
-}
+// Le refresh au démarrage est intentionnellement supprimé sur Railway : chaque
+// redéploiement consommait le refresh token (usage unique), rendant les tokens
+// invalides au démarrage suivant. L'access token dure 4h ; scheduleAutoRefresh
+// le renouvelle toutes les 3h en mémoire et persiste via l'API Railway.
+// En local, le token reste valide depuis bot:token.
 
 const initialCommands = await reloadCommands();
 console.log(`${Object.keys(initialCommands).length} commandes son chargées : ${Object.keys(initialCommands).join(', ')}`);
