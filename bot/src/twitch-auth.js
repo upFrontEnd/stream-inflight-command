@@ -26,9 +26,16 @@ export async function refreshAccessToken({ clientId, refreshToken }) {
   return data; // { access_token, refresh_token, expires_in, ... }
 }
 
-// Réécrit bot/.env avec les tokens à jour, en conservant le reste du fichier
-// (autres variables, ordre) tel quel.
+// Réécrit bot/.env localement, ou met à jour les variables Railway via l'API
+// quand on tourne sur Railway (les tokens Twitch sont usage unique et doivent
+// être persistés pour survivre aux redémarrages).
 export async function persistTokens({ accessToken, refreshToken }) {
+  if (process.env.RAILWAY_TOKEN && process.env.RAILWAY_SERVICE_ID && process.env.RAILWAY_ENVIRONMENT_ID) {
+    await upsertRailwayVar('TWITCH_OAUTH_TOKEN', `oauth:${accessToken}`);
+    await upsertRailwayVar('TWITCH_REFRESH_TOKEN', refreshToken);
+    return;
+  }
+
   let content = '';
   try {
     content = await readFile(ENV_PATH, 'utf8');
@@ -40,6 +47,28 @@ export async function persistTokens({ accessToken, refreshToken }) {
   content = setEnvVar(content, 'TWITCH_REFRESH_TOKEN', refreshToken);
 
   await writeFile(ENV_PATH, content, 'utf8');
+}
+
+async function upsertRailwayVar(name, value) {
+  const res = await fetch('https://backboard.railway.app/graphql/v2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RAILWAY_TOKEN}`,
+    },
+    body: JSON.stringify({
+      query: `mutation($input: VariableUpsertInput!) { variableUpsert(input: $input) }`,
+      variables: {
+        input: {
+          serviceId: process.env.RAILWAY_SERVICE_ID,
+          environmentId: process.env.RAILWAY_ENVIRONMENT_ID,
+          name,
+          value,
+        },
+      },
+    }),
+  });
+  if (!res.ok) throw new Error(`Railway API ${res.status}`);
 }
 
 function setEnvVar(content, key, value) {
