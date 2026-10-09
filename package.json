@@ -3,12 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun scripts/run-with-node22.mjs concurrently -n worker,ui,bot -c blue,green,magenta \"bun run dev:worker\" \"bun run dev:ui\" \"bun run bot\"",
-    "dev:worker": "bun scripts/run-with-node22.mjs wrangler dev --config worker/wrangler.toml",
-    "deploy:worker": "bun scripts/run-with-node22.mjs wrangler deploy --config worker/wrangler.toml",
-    "dev:ui": "bun scripts/run-with-node22.mjs vite --config ui/vite.config.js",
-    "build:ui": "bun scripts/run-with-node22.mjs vite build --config ui/vite.config.js",
-    "preview:ui": "bun scripts/run-with-node22.mjs vite preview --config ui/vite.config.js",
+    "dev": "concurrently -n worker,ui,bot -c blue,green,magenta \"bun run dev:worker\" \"bun run dev:ui\" \"bun run bot\"",
+    "dev:worker": "wrangler dev --config worker/wrangler.toml",
+    "deploy:worker": "wrangler deploy --config worker/wrangler.toml",
+    "dev:ui": "vite --config ui/vite.config.js",
+    "build:ui": "vite build --config ui/vite.config.js",
+    "preview:ui": "vite preview --config ui/vite.config.js",
     "bot": "bun scripts/bot-watchdog.mjs",
     "bot:once": "bun --env-file=bot/.env bot/src/index.js",
     "bot:token": "bun --env-file=bot/.env bot/src/get-token.js"
