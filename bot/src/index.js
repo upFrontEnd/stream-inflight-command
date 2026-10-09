@@ -9,6 +9,8 @@ import { setNextAnnounceAt, consumeAnnounceIndex, setIsLive } from './announce-s
 import { refreshAccessToken, persistTokens, scheduleAutoRefresh } from './twitch-auth.js';
 import { watchLiveStatus } from './live-status.js';
 
+console.log('[railway] SERVICE_ID:', process.env.RAILWAY_SERVICE_ID, '| ENVIRONMENT_ID:', process.env.RAILWAY_ENVIRONMENT_ID);
+
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 let OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
