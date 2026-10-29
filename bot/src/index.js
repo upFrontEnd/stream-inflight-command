@@ -11,7 +11,7 @@ import { watchLiveStatus } from './live-status.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-let OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
+const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
 const REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.PORT ?? process.env.OVERLAY_PORT ?? 4242);
@@ -129,7 +129,7 @@ if (REFRESH_TOKEN && CLIENT_ID) {
 }
 watchLiveStatus({
   clientId: CLIENT_ID,
-  getAccessToken: () => OAUTH_TOKEN,
+  getAccessToken: () => client.opts.identity.password,
   channelLogin: CHANNEL,
   onLive: startAnnouncing,
   onOffline: stopAnnouncing,
