@@ -6,26 +6,32 @@ import { playSoundFile } from './sound-player.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
 import { setNextAnnounceAt, consumeAnnounceIndex, setIsLive } from './announce-schedule.js';
-import { ensureFreshToken, scheduleAutoRefresh } from './twitch-auth.js';
+import { loadStoredTokens, ensureValidToken, scheduleAutoRefresh } from './twitch-auth.js';
 import { watchLiveStatus } from './live-status.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.PORT ?? process.env.OVERLAY_PORT ?? 4242);
 const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
 
-if (!BOT_USERNAME || !process.env.TWITCH_OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
-  throw new Error(
-    'TWITCH_BOT_USERNAME, TWITCH_CLIENT_ID, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
-  );
+if (!BOT_USERNAME || !CHANNEL || !CLIENT_ID) {
+  throw new Error('TWITCH_BOT_USERNAME, TWITCH_CLIENT_ID et TWITCH_CHANNEL sont requis (voir bot/.env.example)');
 }
-
-const tokenExpiresIn = REFRESH_TOKEN ? await ensureFreshToken({ clientId: CLIENT_ID }) : null;
 
 const initialCommands = await reloadCommands();
 console.log(`${Object.keys(initialCommands).length} commandes son chargées : ${Object.keys(initialCommands).join(', ')}`);
+
+// Serveur démarré avant l'authentification : s'il faut réautoriser le bot, le
+// lien Twitch est affiché sur /auth.
+startOverlayServer(OVERLAY_PORT, {
+  // Bouton "Tester maintenant" du dashboard : envoie le prochain message de
+  // la rotation tout de suite, sans toucher au minutage des envois planifiés.
+  onTestAnnouncement: () => announceNext(),
+});
+
+await loadStoredTokens();
+const tokenExpiresIn = await ensureValidToken({ clientId: CLIENT_ID });
 
 const client = new tmi.Client({
   identity: { username: BOT_USERNAME, password: process.env.TWITCH_OAUTH_TOKEN },
@@ -119,9 +125,7 @@ function stopAnnouncing() {
 }
 
 await client.connect();
-if (tokenExpiresIn) {
-  scheduleAutoRefresh(client, { clientId: CLIENT_ID, expiresInSeconds: tokenExpiresIn });
-}
+scheduleAutoRefresh(client, { clientId: CLIENT_ID, expiresInSeconds: tokenExpiresIn });
 watchLiveStatus({
   clientId: CLIENT_ID,
   getAccessToken: () => client.opts.identity.password,
@@ -129,12 +133,6 @@ watchLiveStatus({
   onLive: startAnnouncing,
   onOffline: stopAnnouncing,
 });
-startOverlayServer(OVERLAY_PORT, {
-  // Bouton "Tester maintenant" du dashboard : envoie le prochain message de
-  // la rotation tout de suite, sans toucher au minutage des envois planifiés.
-  onTestAnnouncement: () => announceNext(),
-});
-console.log(`Sons joués nativement sur cette machine (aucune Browser Source à ajouter dans OBS)`);
-console.log(`Overlay visuel optionnel dispo sur http://localhost:${OVERLAY_PORT}`);
+console.log(`Overlay sons (Browser Source OBS) dispo sur http://localhost:${OVERLAY_PORT}`);
 console.log(`API de gestion des sons dispo sur http://localhost:${OVERLAY_PORT}/api/sounds`);
 console.log(`Annonces toutes les ${ANNOUNCE_INTERVAL_MS / 60_000} min, gérées sur http://localhost:${OVERLAY_PORT}/api/announcements`);

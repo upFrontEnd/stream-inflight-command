@@ -2,6 +2,7 @@ import { readdir, mkdir } from 'node:fs/promises';
 import { reloadCommands } from './commands-store.js';
 import { listAnnouncements, addAnnouncement, updateAnnouncement, removeAnnouncement } from './announcements-store.js';
 import { getNextAnnounceAt, getAnnounceIndex, getIsLive } from './announce-schedule.js';
+import { getPendingAuth } from './twitch-auth.js';
 
 const clients = new Set();
 
@@ -99,6 +100,27 @@ function readAnnouncementText(body) {
   return { text };
 }
 
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+function authPage() {
+  const pending = getPendingAuth();
+  const body = pending
+    ? `<h1>Autorisation Twitch requise</h1>
+       <p><a href="${escapeHtml(pending.verificationUri)}" target="_blank" rel="noopener">Autoriser le bot sur Twitch</a></p>
+       <p>Code si demandé : <strong>${escapeHtml(pending.userCode)}</strong></p>
+       <p>Cette page se met à jour toute seule.</p>`
+    : '<h1>✅ Bot autorisé</h1><p>Rien à faire.</p>';
+  return new Response(
+    `<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+     <meta http-equiv="refresh" content="5"><title>Auth bot</title>
+     <style>body{font:16px system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem}a{font-size:1.2rem}</style>
+     </head><body>${body}</body></html>`,
+    { headers: { 'content-type': 'text/html; charset=utf-8' } },
+  );
+}
+
 async function handleAddAnnouncement(req) {
   const body = await req.json().catch(() => null);
   const { text, error } = readAnnouncementText(body);
@@ -129,6 +151,10 @@ export function startOverlayServer(port, { onTestAnnouncement } = {}) {
 
       if (req.method === 'OPTIONS') {
         return new Response(null, { headers: CORS_HEADERS });
+      }
+
+      if (url.pathname === '/auth') {
+        return authPage();
       }
 
       if (url.pathname === '/api/sounds' && req.method === 'GET') {
