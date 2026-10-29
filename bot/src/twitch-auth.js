@@ -1,15 +1,16 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-// Les access tokens Twitch (Device Code Flow) n'expirent pas au bout de
-// quelques semaines mais au bout de 4h (documenté par Twitch). Sans
-// rafraîchissement automatique via le refresh token, le bot planterait
-// plusieurs fois par live. Le refresh token, lui, est valable 30 jours tant
-// qu'il est utilisé, et Twitch en renvoie un nouveau à chaque refresh (usage
-// unique : il faut le repersister à chaque fois pour survivre à un restart).
+// Les access tokens Twitch (Device Code Flow) expirent au bout de 4h. Le
+// refresh token, lui, est valable 30 jours tant qu'il est utilisé, mais il est
+// à usage unique : Twitch en renvoie un nouveau à chaque refresh, qu'il faut
+// repersister pour survivre à un redémarrage.
 const ENV_PATH = new URL('../.env', import.meta.url);
 const TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
+const VALIDATE_URL = 'https://id.twitch.tv/oauth2/validate';
+const RAILWAY_API_URL = 'https://backboard.railway.app/graphql/v2';
+const REFRESH_MARGIN_SECONDS = 30 * 60;
 
-export async function refreshAccessToken({ clientId, refreshToken }) {
+async function refreshAccessToken({ clientId, refreshToken }) {
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -26,14 +27,70 @@ export async function refreshAccessToken({ clientId, refreshToken }) {
   return data; // { access_token, refresh_token, expires_in, ... }
 }
 
+async function validateAccessToken(token) {
+  const res = await fetch(VALIDATE_URL, {
+    headers: { Authorization: `OAuth ${token.replace(/^oauth:/, '')}` },
+  });
+  return res.ok ? res.json() : null; // { expires_in, ... } ou null si invalide/expiré
+}
+
+async function rotateTokens({ clientId }) {
+  const refreshed = await refreshAccessToken({ clientId, refreshToken: process.env.TWITCH_REFRESH_TOKEN });
+  process.env.TWITCH_OAUTH_TOKEN = `oauth:${refreshed.access_token}`;
+  process.env.TWITCH_REFRESH_TOKEN = refreshed.refresh_token;
+
+  try {
+    await persistTokens({ accessToken: refreshed.access_token, refreshToken: refreshed.refresh_token });
+  } catch (err) {
+    console.error(
+      '[auth] ⚠️ tokens rafraîchis mais NON persistés, le prochain redémarrage échouera (relancer bun run bot:token) :',
+      err.message,
+    );
+  }
+  return refreshed;
+}
+
+// Au démarrage, le token stocké peut avoir expiré (redémarrage/redéploiement
+// plus de 4h après le dernier refresh) : on le vérifie et on ne consomme le
+// refresh token que si c'est nécessaire. Renvoie la durée de validité restante.
+export async function ensureFreshToken({ clientId }) {
+  const info = await validateAccessToken(process.env.TWITCH_OAUTH_TOKEN);
+  if (info && info.expires_in > REFRESH_MARGIN_SECONDS) return info.expires_in;
+
+  console.log(info ? '[auth] token bientôt expiré, rafraîchissement...' : '[auth] token expiré, rafraîchissement...');
+  const refreshed = await rotateTokens({ clientId });
+  console.log('[auth] token Twitch rafraîchi au démarrage');
+  return refreshed.expires_in;
+}
+
 // Réécrit bot/.env localement, ou met à jour les variables Railway via l'API
-// quand on tourne sur Railway (les tokens Twitch sont usage unique et doivent
-// être persistés pour survivre aux redémarrages).
+// quand on tourne sur Railway.
 export async function persistTokens({ accessToken, refreshToken }) {
-  if (process.env.RAILWAY_TOKEN && process.env.RAILWAY_SERVICE_ID && process.env.RAILWAY_ENVIRONMENT_ID) {
-    await upsertRailwayVar('TWITCH_OAUTH_TOKEN', `oauth:${accessToken}`);
-    await upsertRailwayVar('TWITCH_REFRESH_TOKEN', refreshToken);
+  const { RAILWAY_TOKEN, RAILWAY_PROJECT_ID, RAILWAY_SERVICE_ID, RAILWAY_ENVIRONMENT_ID } = process.env;
+  if (RAILWAY_TOKEN && RAILWAY_PROJECT_ID && RAILWAY_SERVICE_ID && RAILWAY_ENVIRONMENT_ID) {
+    // Une seule mutation pour les deux tokens, et skipDeploys sinon Railway
+    // redéploie le service à chaque changement de variable.
+    await railwayRequest({
+      query: `mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }`,
+      variables: {
+        input: {
+          projectId: RAILWAY_PROJECT_ID,
+          environmentId: RAILWAY_ENVIRONMENT_ID,
+          serviceId: RAILWAY_SERVICE_ID,
+          variables: {
+            TWITCH_OAUTH_TOKEN: `oauth:${accessToken}`,
+            TWITCH_REFRESH_TOKEN: refreshToken,
+          },
+          skipDeploys: true,
+        },
+      },
+    });
+    console.log('[railway] tokens Twitch persistés');
     return;
+  }
+
+  if (process.env.RAILWAY_ENVIRONMENT_ID) {
+    throw new Error('RAILWAY_TOKEN manquant : impossible de persister les tokens sur Railway');
   }
 
   let content = '';
@@ -49,29 +106,25 @@ export async function persistTokens({ accessToken, refreshToken }) {
   await writeFile(ENV_PATH, content, 'utf8');
 }
 
-async function upsertRailwayVar(name, value) {
-  console.log(`[railway] upsert ${name} | serviceId=${process.env.RAILWAY_SERVICE_ID} | envId=${process.env.RAILWAY_ENVIRONMENT_ID}`);
-  const res = await fetch('https://backboard.railway.app/graphql/v2', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.RAILWAY_TOKEN}`,
-    },
-    body: JSON.stringify({
-      query: `mutation($input: VariableUpsertInput!) { variableUpsert(input: $input) }`,
-      variables: {
-        input: {
-          serviceId: process.env.RAILWAY_SERVICE_ID,
-          environmentId: process.env.RAILWAY_ENVIRONMENT_ID,
-          name,
-          value,
-        },
-      },
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok || data.errors) throw new Error(`Railway API: ${JSON.stringify(data.errors ?? res.status)}`);
-  console.log(`[railway] ${name} mis à jour`);
+// RAILWAY_TOKEN peut être un token de compte/équipe (en-tête Bearer) ou un
+// token de projet (en-tête Project-Access-Token) : on essaie les deux.
+async function railwayRequest(body) {
+  const token = process.env.RAILWAY_TOKEN;
+  const authHeaders = [{ Authorization: `Bearer ${token}` }, { 'Project-Access-Token': token }];
+  let lastError;
+
+  for (const headers of authHeaders) {
+    const res = await fetch(RAILWAY_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && !data.errors) return data;
+    lastError = JSON.stringify(data.errors ?? res.status);
+  }
+
+  throw new Error(`Railway API : ${lastError}`);
 }
 
 function setEnvVar(content, key, value) {
@@ -83,27 +136,24 @@ function setEnvVar(content, key, value) {
   return `${content}${separator}${line}\n`;
 }
 
-// Rafraîchit périodiquement l'access token en tâche de fond et reconnecte le
-// client tmi.js avec le nouveau, sans jamais redemander de login Twitch (sauf
-// si le refresh token lui-même a expiré, ce qui suppose 30 jours sans que le
-// bot ait tourné).
-export function scheduleAutoRefresh(client, { clientId, intervalMs = 3 * 60 * 60 * 1000 }) {
-  return setInterval(async () => {
-    const refreshToken = process.env.TWITCH_REFRESH_TOKEN;
-    if (!refreshToken) return;
+// Rafraîchit l'access token 30 min avant son expiration et reconnecte le
+// client tmi.js avec le nouveau. En cas d'échec, nouvel essai 5 min plus tard.
+export function scheduleAutoRefresh(client, { clientId, expiresInSeconds }) {
+  const schedule = (seconds) => setTimeout(run, Math.max(seconds - REFRESH_MARGIN_SECONDS, 60) * 1000);
 
+  async function run() {
     try {
-      const refreshed = await refreshAccessToken({ clientId, refreshToken });
-      process.env.TWITCH_REFRESH_TOKEN = refreshed.refresh_token;
-      await persistTokens({ accessToken: refreshed.access_token, refreshToken: refreshed.refresh_token });
-
+      const refreshed = await rotateTokens({ clientId });
       client.opts.identity.password = `oauth:${refreshed.access_token}`;
       await client.disconnect();
       await client.connect();
-
       console.log('[auth] token Twitch rafraîchi automatiquement, reconnecté au chat');
+      schedule(refreshed.expires_in);
     } catch (err) {
-      console.error('[auth] échec du refresh automatique périodique :', err.message);
+      console.error('[auth] échec du refresh automatique, nouvel essai dans 5 min :', err.message);
+      schedule(REFRESH_MARGIN_SECONDS + 5 * 60);
     }
-  }, intervalMs);
+  }
+
+  schedule(expiresInSeconds);
 }

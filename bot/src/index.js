@@ -6,34 +6,29 @@ import { playSoundFile } from './sound-player.js';
 import { isWorkerCommand, fetchWorkerReply } from './worker-commands.js';
 import { listAnnouncements } from './announcements-store.js';
 import { setNextAnnounceAt, consumeAnnounceIndex, setIsLive } from './announce-schedule.js';
-import { refreshAccessToken, persistTokens, scheduleAutoRefresh } from './twitch-auth.js';
+import { ensureFreshToken, scheduleAutoRefresh } from './twitch-auth.js';
 import { watchLiveStatus } from './live-status.js';
 
 const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
 const REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN;
 const CHANNEL = process.env.TWITCH_CHANNEL;
 const OVERLAY_PORT = Number(process.env.PORT ?? process.env.OVERLAY_PORT ?? 4242);
 const ANNOUNCE_INTERVAL_MS = Number(process.env.ANNOUNCE_INTERVAL_MINUTES ?? 30) * 60_000;
 
-if (!BOT_USERNAME || !OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
+if (!BOT_USERNAME || !process.env.TWITCH_OAUTH_TOKEN || !CHANNEL || !CLIENT_ID) {
   throw new Error(
     'TWITCH_BOT_USERNAME, TWITCH_CLIENT_ID, TWITCH_OAUTH_TOKEN et TWITCH_CHANNEL sont requis (voir bot/.env.example)',
   );
 }
 
-// Le refresh au démarrage est intentionnellement supprimé sur Railway : chaque
-// redéploiement consommait le refresh token (usage unique), rendant les tokens
-// invalides au démarrage suivant. L'access token dure 4h ; scheduleAutoRefresh
-// le renouvelle toutes les 3h en mémoire et persiste via l'API Railway.
-// En local, le token reste valide depuis bot:token.
+const tokenExpiresIn = REFRESH_TOKEN ? await ensureFreshToken({ clientId: CLIENT_ID }) : null;
 
 const initialCommands = await reloadCommands();
 console.log(`${Object.keys(initialCommands).length} commandes son chargées : ${Object.keys(initialCommands).join(', ')}`);
 
 const client = new tmi.Client({
-  identity: { username: BOT_USERNAME, password: OAUTH_TOKEN },
+  identity: { username: BOT_USERNAME, password: process.env.TWITCH_OAUTH_TOKEN },
   channels: [CHANNEL],
 });
 
@@ -124,8 +119,8 @@ function stopAnnouncing() {
 }
 
 await client.connect();
-if (REFRESH_TOKEN && CLIENT_ID) {
-  scheduleAutoRefresh(client, { clientId: CLIENT_ID });
+if (tokenExpiresIn) {
+  scheduleAutoRefresh(client, { clientId: CLIENT_ID, expiresInSeconds: tokenExpiresIn });
 }
 watchLiveStatus({
   clientId: CLIENT_ID,

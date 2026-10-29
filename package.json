@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n worker,ui,bot -c blue,green,magenta \"bun run dev:worker\" \"bun run dev:ui\" \"bun run bot\"",
+    "dev": "concurrently -n worker,ui -c blue,green \"bun run dev:worker\" \"bun run dev:ui\"",
     "dev:worker": "wrangler dev --config worker/wrangler.toml",
     "deploy:worker": "wrangler deploy --config worker/wrangler.toml",
     "dev:ui": "vite --config ui/vite.config.js",
@@ -14,9 +14,11 @@
     "bot:token": "bun --env-file=bot/.env bot/src/get-token.js"
   },
   "dependencies": {
-    "tmi.js": "^1.8.5"
+    "tmi.js": "^1.8.5",
+    "vue": "^3.5.44"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.10",
     "concurrently": "^10.0.5",
     "sass": "^1.105.0",
     "vite": "^8.3.0",
