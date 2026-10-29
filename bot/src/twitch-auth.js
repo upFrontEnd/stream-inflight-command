@@ -151,6 +151,12 @@ async function reauthorize({ clientId }) {
 export async function ensureValidToken({ clientId, force = false }) {
   if (!force && process.env.TWITCH_OAUTH_TOKEN) {
     const info = await validateAccessToken(process.env.TWITCH_OAUTH_TOKEN);
+    // Un token émis pour une autre appli (TWITCH_CLIENT_ID changé) ne peut
+    // être ni utilisé avec Helix ni rafraîchi : il faut réautoriser.
+    if (info && info.client_id !== clientId) {
+      console.log('[auth] token émis pour une autre appli Twitch, nouvelle autorisation nécessaire');
+      return (await reauthorize({ clientId })).expires_in;
+    }
     if (info && info.expires_in > REFRESH_MARGIN_SECONDS) return info.expires_in;
   }
 
