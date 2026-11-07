@@ -1,4 +1,16 @@
-const FILE_URL = new URL('../announcements.json', import.meta.url);
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Sur Railway le disque du conteneur est effacé à chaque redéploiement : les
+// annonces doivent vivre sur le volume. Par défaut, on les range à côté des
+// tokens (TOKEN_STORE_PATH), sinon bot/announcements.json en local.
+const { ANNOUNCEMENTS_STORE_PATH, TOKEN_STORE_PATH } = process.env;
+const FILE_URL =
+  ANNOUNCEMENTS_STORE_PATH ||
+  (TOKEN_STORE_PATH
+    ? join(dirname(TOKEN_STORE_PATH), 'announcements.json')
+    : new URL('../announcements.json', import.meta.url));
+console.log(`[announcements] stockage : ${FILE_URL instanceof URL ? fileURLToPath(FILE_URL) : FILE_URL}`);
 
 async function readAll() {
   try {

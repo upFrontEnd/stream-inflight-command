@@ -324,9 +324,11 @@ rotation dans le vrai chat, à tout moment (live ou pas), sans décaler le
 minutage des envois automatiques.
 Pratique pour vérifier le rendu sans attendre 30 minutes.
 
-Les messages sont stockés dans `bot/announcements.json` (non commité, voir
-`bot/announcements.example.json` pour le format si tu préfères éditer à la
-main).
+Les messages sont stockés dans `bot/announcements.json` en local (non commité,
+voir `bot/announcements.example.json` pour le format si tu préfères éditer à la
+main). Sur Railway, ils vont à côté de `TOKEN_STORE_PATH` (ex :
+`/data/announcements.json`) pour survivre aux redéploiements ;
+`ANNOUNCEMENTS_STORE_PATH` permet de choisir un autre emplacement.
 
 ## <img src="docs/banners/deploiement.png" alt="Déploiement" height="28" />
 
