@@ -1,3 +1,13 @@
+import {
+  getGithubToken,
+  setGithubToken,
+  listGithubAnnouncements,
+  addGithubAnnouncement,
+  updateGithubAnnouncement,
+  removeGithubAnnouncement,
+  dispatchGithubTest,
+} from './github-announcements.js';
+
 const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'http://localhost:8787';
 // Vide = pas de bot joignable (ex : GitHub Pages). L'onglet Sons bascule alors
 // sur la liste publiée avec le site, en lecture seule.
@@ -49,72 +59,87 @@ export async function uploadSound({ category, command, file }) {
   return data;
 }
 
-// editable : true si le bot répond, false si on lit announcements.json publié
-// avec le site (modification sur GitHub, envoi par GitHub Actions).
+// Trois façons de gérer les annonces, choisies au chargement de la liste :
+// - "bot"      : le bot local répond, tout passe par son API ;
+// - "github"   : pas de bot, mais un jeton GitHub est enregistré : le dashboard
+//                modifie bot/announcements.json dans le repo (envoi par GitHub Actions) ;
+// - "readonly" : ni l'un ni l'autre, on affiche la liste publiée avec le site.
+let announcementsMode = 'readonly';
+
 export async function fetchAnnouncements() {
   if (BOT_URL) {
     try {
       const res = await fetch(`${BOT_URL}/api/announcements`);
-      if (res.ok) return { list: await res.json(), editable: true };
+      if (res.ok) {
+        announcementsMode = 'bot';
+        return { list: await res.json(), mode: announcementsMode };
+      }
     } catch {
-      // bot éteint : on retombe sur la liste publiée
+      // bot éteint : on passe à GitHub
     }
   }
 
+  if (getGithubToken()) {
+    try {
+      const list = await listGithubAnnouncements();
+      announcementsMode = 'github';
+      return { list, mode: announcementsMode };
+    } catch (err) {
+      if (err.status !== 401) throw err;
+      setGithubToken(''); // jeton expiré ou révoqué : on réaffiche la connexion
+    }
+  }
+
+  announcementsMode = 'readonly';
   const res = await fetch(`${import.meta.env.BASE_URL}announcements.json`, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`announcements.json a répondu ${res.status}`);
   }
-  return { list: await res.json(), editable: false };
+  return { list: await res.json(), mode: announcementsMode };
 }
 
-export async function addAnnouncement(text) {
-  const res = await fetch(`${botUrl()}/api/announcements`, {
+async function botJson(path, init) {
+  const res = await fetch(`${botUrl()}${path}`, init);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
+  }
+  return data;
+}
+
+export function addAnnouncement(text) {
+  if (announcementsMode === 'github') return addGithubAnnouncement(text);
+  return botJson('/api/announcements', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
-  }
-  return data;
 }
 
-export async function updateAnnouncement(id, text) {
-  const res = await fetch(`${botUrl()}/api/announcements/${encodeURIComponent(id)}`, {
+export function updateAnnouncement(id, text) {
+  if (announcementsMode === 'github') return updateGithubAnnouncement(id, text);
+  return botJson(`/api/announcements/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
-  }
-  return data;
 }
 
-export async function deleteAnnouncement(id) {
-  const res = await fetch(`${botUrl()}/api/announcements/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  if (!res.ok) {
-    throw new Error(`Le bot a répondu ${res.status}`);
-  }
-  return res.json();
+export function deleteAnnouncement(id) {
+  if (announcementsMode === 'github') return removeGithubAnnouncement(id);
+  return botJson(`/api/announcements/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
-export async function fetchAnnounceSchedule() {
-  const res = await fetch(`${botUrl()}/api/announcements/schedule`);
-  if (!res.ok) {
-    throw new Error(`Le bot a répondu ${res.status}`);
-  }
-  return res.json();
+export function fetchAnnounceSchedule() {
+  return botJson('/api/announcements/schedule');
 }
 
+// Mode bot : { sent } = message envoyé. Mode GitHub : { dispatched: true },
+// l'Action se lance et envoie le message une trentaine de secondes plus tard.
 export async function testAnnouncement() {
-  const res = await fetch(`${botUrl()}/api/announcements/test`, { method: 'POST' });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `Le bot a répondu ${res.status}`);
+  if (announcementsMode === 'github') {
+    await dispatchGithubTest();
+    return { dispatched: true };
   }
-  return data;
+  return botJson('/api/announcements/test', { method: 'POST' });
 }

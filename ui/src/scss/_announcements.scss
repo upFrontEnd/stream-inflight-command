@@ -116,3 +116,23 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+// Carte "Connecter GitHub" : étapes de création du jeton
+.steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+
+  a {
+    color: var(--accent);
+  }
+
+  strong,
+  code {
+    color: var(--text);
+  }
+}

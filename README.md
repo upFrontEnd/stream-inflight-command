@@ -397,9 +397,15 @@ du secret. Il n'y a donc aucun token qui expire à gérer.
    message part tout de suite, live ou pas. C'est l'équivalent de "Tester
    maintenant".
 
-**Modifier les messages** : édite `bot/announcements.json` sur GitHub (lien
-"Modifier la liste" dans l'onglet Annonces du dashboard en ligne). Seul le
-champ `text` est utilisé, `id` est facultatif.
+**Modifier les messages** : depuis l'onglet **Annonces** du dashboard en
+ligne, comme avec le bot (ajouter, modifier, supprimer, "Tester maintenant").
+La première fois, la carte "Connecter GitHub" demande un jeton GitHub :
+le lien fourni ouvre la page de création déjà pré-remplie (permissions
+Contents et Actions en écriture, valable 1 an). Il reste seulement à choisir
+"Only select repositories" → ce repo, puis à coller le jeton généré. Il est
+gardé dans ce navigateur uniquement. Chaque modification est un commit sur
+`bot/announcements.json`, prise en compte dès l'envoi suivant. À l'expiration
+du jeton, la carte de connexion réapparaît.
 
 Limites : GitHub ne garantit pas l'heure exacte des tâches planifiées, un
 message peut partir avec quelques minutes de retard. Sur un repo public,

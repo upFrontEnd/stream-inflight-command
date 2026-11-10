@@ -41,6 +41,7 @@ jobs:
           # (overlay.html) lit le chat Twitch lui-même.
           VITE_TWITCH_CHANNEL: skyflyeraviation
           VITE_GITHUB_REPO: ${{ github.repository }}
+          VITE_ANNOUNCE_INTERVAL_MINUTES: ${{ vars.ANNOUNCE_INTERVAL_MINUTES || '30' }}
 
       - uses: actions/configure-pages@v5
 

@@ -130,3 +130,15 @@
     color: var(--text);
   }
 }
+
+// Bouton secondaire (ex : "Déconnecter GitHub")
+.button--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+}
