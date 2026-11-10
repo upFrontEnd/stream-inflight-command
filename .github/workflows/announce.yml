@@ -42,7 +42,9 @@ jobs:
         id: announce
         run: bun scripts/announce-action.mjs
         env:
-          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          # Le Client ID n'est pas confidentiel : secret ou variable, au choix.
+          # Le Client Secret doit rester un secret (masqué dans les logs).
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID || vars.TWITCH_CLIENT_ID }}
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           TWITCH_CHANNEL: ${{ vars.TWITCH_CHANNEL || 'skyflyeraviation' }}
           ANNOUNCE_INTERVAL_MINUTES: ${{ vars.ANNOUNCE_INTERVAL_MINUTES || '30' }}
