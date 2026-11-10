@@ -49,12 +49,23 @@ export async function uploadSound({ category, command, file }) {
   return data;
 }
 
+// editable : true si le bot répond, false si on lit announcements.json publié
+// avec le site (modification sur GitHub, envoi par GitHub Actions).
 export async function fetchAnnouncements() {
-  const res = await fetch(`${botUrl()}/api/announcements`);
-  if (!res.ok) {
-    throw new Error(`Le bot a répondu ${res.status}`);
+  if (BOT_URL) {
+    try {
+      const res = await fetch(`${BOT_URL}/api/announcements`);
+      if (res.ok) return { list: await res.json(), editable: true };
+    } catch {
+      // bot éteint : on retombe sur la liste publiée
+    }
   }
-  return res.json();
+
+  const res = await fetch(`${import.meta.env.BASE_URL}announcements.json`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`announcements.json a répondu ${res.status}`);
+  }
+  return { list: await res.json(), editable: false };
 }
 
 export async function addAnnouncement(text) {

@@ -1,5 +1,5 @@
-// Autorisation manuelle en local (Device Code Flow officiel de Twitch). Sur
-// Railway, inutile : le bot lance lui-même ce flux et affiche le lien sur /auth
+// Autorisation manuelle en local (Device Code Flow officiel de Twitch).
+// Facultatif : le bot lance lui-même ce flux et affiche le lien sur /auth
 // quand il n'a plus de token valide.
 import { authorizeDevice } from './twitch-auth.js';
 

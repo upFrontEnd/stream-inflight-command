@@ -7,12 +7,22 @@ import { join } from 'node:path';
 // sounds/<catégorie>/<fichier>, et sounds.json liste le tout (même format que
 // GET /api/sounds du bot). En dev, les mêmes URLs sont servies par Vite.
 const SOUNDS_DIR = fileURLToPath(new URL('../bot/sounds/', import.meta.url));
+// Publié aussi pour l'onglet Annonces en lecture seule (envoi : GitHub Actions).
+const ANNOUNCEMENTS_FILE = fileURLToPath(new URL('../bot/announcements.json', import.meta.url));
 const CATEGORIES = ['all', 'sub', 'modo'];
 const MIME_BY_EXTENSION = { '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg' };
 
 function extensionOf(name) {
   const i = name.lastIndexOf('.');
   return i === -1 ? '' : name.slice(i).toLowerCase();
+}
+
+async function readAnnouncements() {
+  try {
+    return await readFile(ANNOUNCEMENTS_FILE, 'utf8');
+  } catch {
+    return '[]';
+  }
 }
 
 async function scanSounds() {
@@ -42,6 +52,12 @@ export function soundsPlugin() {
           return;
         }
 
+        if (pathname === '/announcements.json') {
+          res.setHeader('content-type', 'application/json; charset=utf-8');
+          res.end(await readAnnouncements());
+          return;
+        }
+
         const match = pathname.match(/^\/sounds\/([^/]+)\/([^/]+)$/);
         if (match) {
           const [, category, file] = match;
@@ -61,6 +77,7 @@ export function soundsPlugin() {
     async generateBundle() {
       const manifest = await scanSounds();
       this.emitFile({ type: 'asset', fileName: 'sounds.json', source: JSON.stringify(manifest) });
+      this.emitFile({ type: 'asset', fileName: 'announcements.json', source: await readAnnouncements() });
       for (const category of CATEGORIES) {
         for (const file of manifest[category]) {
           this.emitFile({

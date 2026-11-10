@@ -6,5 +6,4 @@ dist
 .env.local
 *.log
 .DS_Store
-# bot/sounds/* décommenté pour déploiement Railway
-bot/announcements.json
+# bot/sounds/ est commité : les sons sont publiés avec le site (overlay GitHub Pages)

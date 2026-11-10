@@ -109,3 +109,10 @@
     color: var(--text-muted);
   }
 }
+
+// Mode GitHub (sans bot) : liens côte à côte
+.panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

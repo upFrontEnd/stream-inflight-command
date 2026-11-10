@@ -13,12 +13,11 @@ const ENV_PATH = new URL('../.env', import.meta.url);
 const TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 const DEVICE_URL = 'https://id.twitch.tv/oauth2/device';
 const VALIDATE_URL = 'https://id.twitch.tv/oauth2/validate';
-const RAILWAY_API_URL = 'https://backboard.railway.app/graphql/v2';
 const SCOPES = 'chat:read chat:edit';
 const REFRESH_MARGIN_SECONDS = 30 * 60;
 
-// Fichier de stockage des tokens, à placer sur un volume Railway (ex :
-// /data/twitch-tokens.json) pour qu'il survive aux redéploiements.
+// Fichier de stockage des tokens (facultatif), ex : /data/twitch-tokens.json
+// sur un disque persistant si le bot tourne sur un serveur.
 const TOKEN_FILE = process.env.TOKEN_STORE_PATH;
 
 let pendingAuth = null;
@@ -175,40 +174,13 @@ export async function ensureValidToken({ clientId, force = false }) {
   return token.expires_in;
 }
 
-// Ordre de stockage : fichier (volume Railway) si TOKEN_STORE_PATH est
-// défini, variables Railway si l'API est configurée, sinon bot/.env en local.
+// Ordre de stockage : fichier TOKEN_STORE_PATH s'il est défini, sinon
+// bot/.env en local.
 export async function persistTokens({ accessToken, refreshToken }) {
   if (TOKEN_FILE) {
     await mkdir(dirname(TOKEN_FILE), { recursive: true });
     await writeFile(TOKEN_FILE, JSON.stringify({ accessToken, refreshToken }), 'utf8');
     return;
-  }
-
-  const { RAILWAY_TOKEN, RAILWAY_PROJECT_ID, RAILWAY_SERVICE_ID, RAILWAY_ENVIRONMENT_ID } = process.env;
-  if (RAILWAY_TOKEN && RAILWAY_PROJECT_ID && RAILWAY_SERVICE_ID && RAILWAY_ENVIRONMENT_ID) {
-    // Une seule mutation pour les deux tokens, et skipDeploys sinon Railway
-    // redéploie le service à chaque changement de variable.
-    await railwayRequest({
-      query: `mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }`,
-      variables: {
-        input: {
-          projectId: RAILWAY_PROJECT_ID,
-          environmentId: RAILWAY_ENVIRONMENT_ID,
-          serviceId: RAILWAY_SERVICE_ID,
-          variables: {
-            TWITCH_OAUTH_TOKEN: `oauth:${accessToken}`,
-            TWITCH_REFRESH_TOKEN: refreshToken,
-          },
-          skipDeploys: true,
-        },
-      },
-    });
-    console.log('[railway] tokens Twitch persistés');
-    return;
-  }
-
-  if (RAILWAY_ENVIRONMENT_ID) {
-    throw new Error('ni TOKEN_STORE_PATH ni RAILWAY_TOKEN définis : impossible de persister les tokens sur Railway');
   }
 
   let content = '';
@@ -222,27 +194,6 @@ export async function persistTokens({ accessToken, refreshToken }) {
   content = setEnvVar(content, 'TWITCH_REFRESH_TOKEN', refreshToken);
 
   await writeFile(ENV_PATH, content, 'utf8');
-}
-
-// RAILWAY_TOKEN peut être un token de compte/équipe (en-tête Bearer) ou un
-// token de projet (en-tête Project-Access-Token) : on essaie les deux.
-async function railwayRequest(body) {
-  const token = process.env.RAILWAY_TOKEN;
-  const authHeaders = [{ Authorization: `Bearer ${token}` }, { 'Project-Access-Token': token }];
-  let lastError;
-
-  for (const headers of authHeaders) {
-    const res = await fetch(RAILWAY_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && !data.errors) return data;
-    lastError = JSON.stringify(data.errors ?? res.status);
-  }
-
-  throw new Error(`Railway API : ${lastError}`);
 }
 
 function setEnvVar(content, key, value) {

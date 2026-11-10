@@ -17,7 +17,8 @@ stream-command/
 │   ├── run-with-node22.mjs                 Bascule sur Node 22 (nvm) avant chaque commande
 │   ├── bot-watchdog.mjs                    Relance le bot automatiquement s'il plante
 │   ├── streamdeck-start.command            Bouton Stream Deck (macOS) : lance `bun run dev`
-│   └── streamdeck-start.bat                Bouton Stream Deck (Windows) : lance `bun run dev`
+│   ├── streamdeck-start.bat                Bouton Stream Deck (Windows) : lance `bun run dev`
+│   └── announce-action.mjs                 Annonces Twitch envoyées par GitHub Actions (sans bot)
 ├── worker/
 │   ├── wrangler.toml                       Config Cloudflare Worker
 │   ├── .dev.vars.example                   Gabarit de variables locales
@@ -52,7 +53,7 @@ stream-command/
 │           └── _announcements.scss         Liste des messages d'annonce
 └── bot/
     ├── .env.example                        Gabarit de variables locales
-    ├── announcements.example.json          Gabarit (le vrai fichier n'est pas commité)
+    ├── announcements.example.json          Gabarit (la vraie liste : announcements.json, commitée)
     ├── src/
     │   ├── get-token.js                    Génère le token OAuth (Device Code Flow Twitch)
     │   ├── index.js                        Connexion Twitch + boucle de commandes
@@ -67,7 +68,7 @@ stream-command/
     │   ├── twitch-auth.js                  Rafraîchit l'access token Twitch (expire au bout de 4h)
     │   └── live-status.js                  Sonde l'API Helix pour savoir si le stream est en direct
     ├── overlay/                            Browser Source OBS optionnelle (overlay visuel futur, pas requise pour l'audio)
-    └── sounds/                             Fichiers audio, un dossier par rôle (non commités)
+    └── sounds/                             Fichiers audio, un dossier par rôle (commités, publiés sur GitHub Pages)
         ├── all/                            Accessible à tous
         ├── sub/                            Subs + modos + streamer
         └── modo/                           Modos + streamer
@@ -228,7 +229,7 @@ ALL/SUB/MODO, "Ajouter". Le fichier est déposé au bon endroit et le bot
 recharge ses commandes immédiatement, sans redémarrage.
 
 **À la main** : dépose un `.mp3`/`.wav`/`.ogg` directement dans un des trois
-dossiers (non commités, souvent protégés par droits d'auteur), le nom du
+dossiers (commités et publiés avec le site, attention aux droits d'auteur), le nom du
 fichier devient la commande :
 
 ```
@@ -324,15 +325,15 @@ rotation dans le vrai chat, à tout moment (live ou pas), sans décaler le
 minutage des envois automatiques.
 Pratique pour vérifier le rendu sans attendre 30 minutes.
 
-Les messages sont stockés dans `bot/announcements.json` en local (non commité,
-voir `bot/announcements.example.json` pour le format si tu préfères éditer à la
-main). Sur Railway, ils vont à côté de `TOKEN_STORE_PATH` (ex :
-`/data/announcements.json`) pour survivre aux redéploiements ;
-`ANNOUNCEMENTS_STORE_PATH` permet de choisir un autre emplacement.
+Les messages sont stockés dans `bot/announcements.json`, commité : c'est la
+même liste qu'utilise l'envoi par GitHub Actions (section 10). Pense à
+commiter après une modification depuis le dashboard local. Si `TOKEN_STORE_PATH` est défini, ils vont à côté (ex :
+`/data/announcements.json`) ; `ANNOUNCEMENTS_STORE_PATH` permet de choisir un
+autre emplacement.
 
 ### 9. Sons sans bot : overlay GitHub Pages
 
-Quand aucun bot n'est hébergé (Railway arrêté), les commandes son marchent
+Sans bot hébergé, les commandes son marchent
 quand même grâce à `ui/overlay.html`, publié sur GitHub Pages avec le
 dashboard. Cette page lit le chat Twitch en anonyme (connexion IRC
 `justinfan`, sans token ni secret) et joue elle-même les sons, publiés avec
@@ -358,14 +359,53 @@ l'overlay recharge la liste toutes les 5 min, sans toucher à OBS.
 
 Mêmes règles que le bot : rôles par dossier, cooldown global de 10 s.
 Différences : pas de message "tu n'as pas la permission" dans le chat
-(l'overlay ne peut que lire), et pas de `!vol`/`!meteo`/... ni d'annonces
-automatiques, qui ont besoin d'un compte qui écrit dans le chat. Ne lance pas
+(l'overlay ne peut que lire), et pas de `!vol`/`!meteo`/... Les annonces
+automatiques passent par GitHub Actions (section 10). Ne lance pas
 l'overlay et le bot local en même temps, sinon chaque son joue deux fois.
 
 En local, `bun run dev:ui` sert aussi l'overlay sur
 `http://localhost:5183/overlay.html?channel=...`. Dans un onglet de
 navigateur classique, il faut cliquer une fois pour débloquer l'audio (pas
 dans OBS) ; un encart affiche alors la connexion et l'état on/off.
+
+### 10. Annonces sans bot : GitHub Actions
+
+`.github/workflows/announce.yml` tourne toutes les 5 min et lance
+`scripts/announce-action.mjs`. Le comportement est le même que le bot : rien
+hors live, un message toutes les 30 min après le début du live, en rotation
+dans `bot/announcements.json`. L'envoi passe par l'API Twitch avec un token
+d'application, qui est régénéré à chaque exécution à partir du Client ID et
+du secret. Il n'y a donc aucun token qui expire à gérer.
+
+**Mise en place (une fois)** :
+
+1. Il faut une appli Twitch de type **Confidential** pour avoir un secret. Si
+   la tienne est "Public", crée-en une nouvelle sur
+   [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps)
+   (OAuth Redirect URL : `http://localhost`), puis "Nouveau secret".
+2. Sur GitHub, dans Settings → Secrets and variables → Actions, ajoute les
+   secrets `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET`. Facultatif : ajoute
+   aussi les variables `TWITCH_CHANNEL` (par défaut `skyflyeraviation`) et
+   `ANNOUNCE_INTERVAL_MINUTES` (par défaut `30`).
+3. Autorise l'appli à écrire dans ton chat. Connecté avec le compte de la
+   chaîne, ouvre ce lien en remplaçant `TON_CLIENT_ID` :
+   `https://id.twitch.tv/oauth2/authorize?client_id=TON_CLIENT_ID&redirect_uri=http://localhost&response_type=token&scope=user:write:chat+user:bot+channel:bot`.
+   Après avoir accepté, la redirection vers localhost échoue : c'est normal,
+   l'autorisation est enregistrée. Si elle manque, les logs de l'Action
+   affichent ce lien.
+4. Onglet Actions → "Annonces Twitch" → **Run workflow** : le prochain
+   message part tout de suite, live ou pas. C'est l'équivalent de "Tester
+   maintenant".
+
+**Modifier les messages** : édite `bot/announcements.json` sur GitHub (lien
+"Modifier la liste" dans l'onglet Annonces du dashboard en ligne). Seul le
+champ `text` est utilisé, `id` est facultatif.
+
+Limites : GitHub ne garantit pas l'heure exacte des tâches planifiées, un
+message peut partir avec quelques minutes de retard. Sur un repo public,
+GitHub désactive la tâche planifiée après 60 jours sans aucun commit ; il
+suffit alors de la réactiver dans l'onglet Actions. Ne fais pas tourner le
+bot local en même temps, sinon les annonces partent en double.
 
 ## <img src="docs/banners/deploiement.png" alt="Déploiement" height="28" />
 

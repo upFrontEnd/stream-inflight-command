@@ -6,6 +6,7 @@ on:
     paths:
       - 'ui/**'
       - 'bot/sounds/**'
+      - 'bot/announcements.json'
       - '.github/workflows/deploy-ui.yml'
 
 permissions:
@@ -36,8 +37,8 @@ jobs:
         env:
           GITHUB_ACTIONS: true
           VITE_WORKER_URL: https://stream-inflight-command.skyflyeraviation.workers.dev
-          # Plus de bot hébergé (Railway arrêté) : l'onglet Sons lit sounds.json
-          # et l'overlay OBS (overlay.html) lit le chat Twitch lui-même.
+          # Pas de bot hébergé : l'onglet Sons lit sounds.json et l'overlay OBS
+          # (overlay.html) lit le chat Twitch lui-même.
           VITE_TWITCH_CHANNEL: skyflyeraviation
           VITE_GITHUB_REPO: ${{ github.repository }}
 

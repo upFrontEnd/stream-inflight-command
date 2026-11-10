@@ -1,4 +1,19 @@
 <template>
+  <div v-if="!editable" class="upload-card">
+    <h2 class="upload-card__title">Annonces via GitHub Actions</h2>
+    <p class="status">
+      Sans bot, les messages sont envoyés par GitHub Actions : toutes les
+      {{ ANNOUNCE_INTERVAL_MINUTES }} min une fois le live détecté, en rotation.
+      La liste se modifie dans <code>bot/announcements.json</code> sur GitHub.
+    </p>
+    <div class="panel__toolbar">
+      <a class="button" :href="`https://github.com/${GITHUB_REPO}/edit/main/bot/announcements.json`" target="_blank" rel="noopener">Modifier la liste</a>
+      <a class="button" :href="`https://github.com/${GITHUB_REPO}/actions/workflows/announce.yml`" target="_blank" rel="noopener">Tester maintenant</a>
+    </div>
+    <p class="status">« Tester maintenant » ouvre la page de l'Action : clique sur « Run workflow ».</p>
+  </div>
+
+  <template v-else>
   <p class="status">{{ liveText }}</p>
   <div class="panel__toolbar">
     <button type="button" class="button" :disabled="testLoading" @click="handleTest">Tester maintenant</button>
@@ -13,12 +28,13 @@
     <button type="submit" class="button button--primary">Ajouter</button>
     <p class="status" :class="{ 'status--error': actionError }">{{ actionStatus }}</p>
   </form>
+  </template>
 
   <ul class="announce-list">
     <template v-if="announcements.length && !listError">
       <li
-        v-for="item in announcements"
-        :key="item.id"
+        v-for="(item, i) in announcements"
+        :key="item.id ?? i"
         class="announce-item"
         :class="{ 'announce-item--editing': item.id === editingId }"
       >
@@ -32,7 +48,7 @@
         <template v-else>
           <span class="announce-item__text">{{ item.text }}</span>
           <span v-if="item.id === nextId" class="announce-item__countdown">⏱ {{ countdown }}</span>
-          <span class="announce-item__actions">
+          <span v-if="editable" class="announce-item__actions">
             <button type="button" class="announce-item__edit" title="Modifier" aria-label="Modifier" @click="startEdit(item.id, item.text)">✏️</button>
             <button type="button" class="announce-item__remove" title="Supprimer" aria-label="Supprimer" @click="removeItem(item.id)">✕</button>
           </span>
@@ -55,6 +71,9 @@ import {
   testAnnouncement,
 } from '../js/api.js';
 
+const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO ?? 'upFrontEnd/stream-inflight-command';
+const ANNOUNCE_INTERVAL_MINUTES = import.meta.env.VITE_ANNOUNCE_INTERVAL_MINUTES ?? '30';
+
 function formatCountdown(ms) {
   if (ms <= 0) return '00:00';
   const totalSeconds = Math.ceil(ms / 1000);
@@ -64,6 +83,7 @@ function formatCountdown(ms) {
 }
 
 const announcements = ref([]);
+const editable = ref(true);
 const listError = ref('');
 const editingId = ref(null);
 const editText = ref('');
@@ -81,7 +101,9 @@ let scheduleTimer = null;
 
 async function loadList() {
   try {
-    announcements.value = await fetchAnnouncements();
+    const result = await fetchAnnouncements();
+    announcements.value = result.list;
+    editable.value = result.editable;
     listError.value = '';
   } catch (err) {
     listError.value = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -93,6 +115,7 @@ function tickCountdown() {
 }
 
 async function refreshSchedule() {
+  if (!editable.value) return;
   try {
     const data = await fetchAnnounceSchedule();
     nextAt.value = data.nextAt;
@@ -173,8 +196,8 @@ async function handleTest() {
   }
 }
 
-onMounted(() => {
-  loadList();
+onMounted(async () => {
+  await loadList();
   refreshSchedule();
   tickTimer = setInterval(tickCountdown, 1000);
   scheduleTimer = setInterval(refreshSchedule, 10_000);
