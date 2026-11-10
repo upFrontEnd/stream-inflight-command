@@ -330,6 +330,43 @@ main). Sur Railway, ils vont à côté de `TOKEN_STORE_PATH` (ex :
 `/data/announcements.json`) pour survivre aux redéploiements ;
 `ANNOUNCEMENTS_STORE_PATH` permet de choisir un autre emplacement.
 
+### 9. Sons sans bot : overlay GitHub Pages
+
+Quand aucun bot n'est hébergé (Railway arrêté), les commandes son marchent
+quand même grâce à `ui/overlay.html`, publié sur GitHub Pages avec le
+dashboard. Cette page lit le chat Twitch en anonyme (connexion IRC
+`justinfan`, sans token ni secret) et joue elle-même les sons, publiés avec
+le site.
+
+**Mise en place (une fois)** : dans OBS, ajoute une Browser Source avec
+l'URL `https://upfrontend.github.io/stream-inflight-command/overlay.html?channel=skyflyeraviation`
+(aussi copiable depuis l'onglet **Sons** du dashboard en ligne). Coche
+"Contrôler l'audio via OBS" si tu veux un fader dédié dans le mixeur.
+
+Réglages facultatifs dans l'URL : `&volume=80` (0-100), `&cooldown=10`
+(secondes, modos exemptés).
+
+**Activer / couper les sons pendant le live** : un modo ou le streamer tape
+`!sons off` ou `!sons on` dans le chat. L'état est mémorisé par la source OBS,
+même après un redémarrage.
+
+**Ajouter un son** : dépose le fichier sur GitHub dans `bot/sounds/all/`,
+`sub/` ou `modo/`, nommé comme la commande (`!boom.mp3`). Les liens
+ALL/SUB/MODO de l'onglet **Sons** ouvrent directement la page d'upload du bon
+dossier. Le commit déclenche le déploiement GitHub Pages (~1 min), et
+l'overlay recharge la liste toutes les 5 min, sans toucher à OBS.
+
+Mêmes règles que le bot : rôles par dossier, cooldown global de 10 s.
+Différences : pas de message "tu n'as pas la permission" dans le chat
+(l'overlay ne peut que lire), et pas de `!vol`/`!meteo`/... ni d'annonces
+automatiques, qui ont besoin d'un compte qui écrit dans le chat. Ne lance pas
+l'overlay et le bot local en même temps, sinon chaque son joue deux fois.
+
+En local, `bun run dev:ui` sert aussi l'overlay sur
+`http://localhost:5183/overlay.html?channel=...`. Dans un onglet de
+navigateur classique, il faut cliquer une fois pour débloquer l'audio (pas
+dans OBS) ; un encart affiche alors la connexion et l'état on/off.
+
 ## <img src="docs/banners/deploiement.png" alt="Déploiement" height="28" />
 
 ```bash

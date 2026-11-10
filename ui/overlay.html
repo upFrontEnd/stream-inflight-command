@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Overlay sons</title>
+    <style>
+      html, body { margin: 0; background: transparent; }
+      #unlock {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        font: 16px system-ui, sans-serif;
+        cursor: pointer;
+        text-align: center;
+        padding: 1rem;
+      }
+      #status { font-size: 0.875rem; opacity: 0.75; }
+      /* Après le clic : petit encart de statut dans un coin, onglet de test uniquement. */
+      #unlock.is-unlocked {
+        inset: auto 1rem 1rem auto;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        cursor: default;
+      }
+      #unlock.is-unlocked #unlock-hint { display: none; }
+    </style>
+  </head>
+  <body>
+    <!-- Retiré automatiquement dans OBS (pas de restriction autoplay là-bas).
+         Dans un onglet de navigateur classique, il faut cliquer une fois pour
+         débloquer l'audio ; le statut reste affiché pour faciliter les tests. -->
+    <div id="unlock">
+      <span id="unlock-hint">Cliquer pour activer le son (une seule fois)</span>
+      <span id="status">Connexion…</span>
+    </div>
+    <script type="module" src="/src/overlay/main.js"></script>
+  </body>
+</html>

@@ -1,6 +1,38 @@
 <template>
   <div class="sounds-layout">
-    <form class="upload-card" @submit.prevent="handleUpload">
+    <div v-if="!editable" class="upload-card">
+      <h2 class="upload-card__title">Overlay OBS</h2>
+      <p class="status">
+        Ajoute cette URL en Browser Source dans OBS : elle lit le chat et joue les sons,
+        sans bot. Les modos peuvent taper <code>!sons off</code> / <code>!sons on</code>.
+      </p>
+      <button
+        type="button"
+        class="chip overlay-url"
+        :class="{ 'chip--copied': overlayCopied }"
+        @click="copyOverlayUrl"
+      >{{ overlayCopied ? 'Copié !' : overlayUrl }}</button>
+
+      <h2 class="upload-card__title">Ajouter un son</h2>
+      <p class="status">
+        Dépose le fichier sur GitHub dans le dossier du rôle voulu, nommé comme la
+        commande (ex : <code>!boom.mp3</code>). Le site se met à jour en ~1 min,
+        l'overlay le prend en compte dans les 5 min.
+      </p>
+      <div class="segmented">
+        <a
+          v-for="cat in CATEGORIES"
+          :key="cat.value"
+          class="segmented__option"
+          :href="`https://github.com/${GITHUB_REPO}/upload/main/bot/sounds/${cat.value}`"
+          :title="cat.hint"
+          target="_blank"
+          rel="noopener"
+        >{{ cat.label }}</a>
+      </div>
+    </div>
+
+    <form v-else class="upload-card" @submit.prevent="handleUpload">
       <h2 class="upload-card__title">Ajouter un son</h2>
 
       <label class="field">
@@ -75,6 +107,13 @@ const CATEGORIES = [
   { value: 'modo', label: 'MODO', hint: 'Modos + streamer' },
 ];
 
+const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO ?? 'upFrontEnd/stream-inflight-command';
+const TWITCH_CHANNEL = import.meta.env.VITE_TWITCH_CHANNEL ?? '';
+const overlayUrl = new URL(
+  `overlay.html${TWITCH_CHANNEL ? `?channel=${encodeURIComponent(TWITCH_CHANNEL)}` : ''}`,
+  new URL(import.meta.env.BASE_URL, location.origin),
+).href;
+
 const DROPZONE_DEFAULT_TEXT = 'Glisse un fichier audio ici, ou clique pour parcourir';
 
 function stripExtension(filename) {
@@ -93,6 +132,18 @@ const uploadError = ref(false);
 const sounds = ref({});
 const soundsError = ref('');
 const copiedFiles = reactive(new Set());
+const editable = ref(true);
+const overlayCopied = ref(false);
+
+async function copyOverlayUrl() {
+  try {
+    await navigator.clipboard.writeText(overlayUrl);
+    overlayCopied.value = true;
+    setTimeout(() => (overlayCopied.value = false), 1000);
+  } catch (err) {
+    console.error('Copie impossible :', err);
+  }
+}
 
 function handleFileChange() {
   const file = fileInputEl.value?.files[0];
@@ -127,7 +178,9 @@ async function copyCommand(filename) {
 
 async function loadSounds() {
   try {
-    sounds.value = await fetchSounds();
+    const result = await fetchSounds();
+    sounds.value = result.sounds;
+    editable.value = result.editable;
     soundsError.value = '';
   } catch (err) {
     soundsError.value = err instanceof Error ? err.message : 'Erreur inconnue';

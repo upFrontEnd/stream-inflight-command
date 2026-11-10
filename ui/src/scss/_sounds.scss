@@ -85,3 +85,19 @@ button.chip {
     color: var(--ok);
   }
 }
+
+// URL de l'overlay OBS (mode GitHub Pages, sans bot) : longue, on la laisse revenir à la ligne
+.overlay-url {
+  text-align: left;
+  word-break: break-all;
+  border-radius: 8px;
+}
+
+a.segmented__option {
+  text-align: center;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
