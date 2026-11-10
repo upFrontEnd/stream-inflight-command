@@ -28,9 +28,20 @@ const ANNOUNCEMENTS_PATH = new URL('../bot/announcements.json', import.meta.url)
 const SCOPES = 'user:write:chat user:bot channel:bot';
 const isTest = FORCE === 'true';
 
-if (!CLIENT_ID || !CLIENT_SECRET || !CHANNEL) {
-  console.error('TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET (secrets) et TWITCH_CHANNEL sont requis.');
+// Sur GitHub, "::error::" fait apparaître le message dans le résumé de
+// l'exécution, sans avoir à ouvrir les logs.
+function fail(message) {
+  if (process.env.GITHUB_ACTIONS) {
+    console.error(`::error::${message.replace(/\n/g, '%0A')}`);
+  } else {
+    console.error(message);
+  }
   process.exit(1);
+}
+
+if (!CLIENT_ID || !CLIENT_SECRET || !CHANNEL) {
+  const missing = [!CLIENT_ID && 'TWITCH_CLIENT_ID', !CLIENT_SECRET && 'TWITCH_CLIENT_SECRET', !CHANNEL && 'TWITCH_CHANNEL'];
+  fail(`Secrets GitHub manquants : ${missing.filter(Boolean).join(', ')}`);
 }
 
 async function readJson(path, fallback) {
@@ -47,7 +58,7 @@ async function getAppToken() {
     body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: 'client_credentials' }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`token d'application refusé : ${JSON.stringify(data)}`);
+  if (!res.ok) fail(`Token d'application refusé par Twitch (vérifie les secrets TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET) : ${JSON.stringify(data)}`);
   return data.access_token;
 }
 
@@ -82,7 +93,7 @@ const token = await getAppToken();
 
 const users = await helix(token, `users?login=${encodeURIComponent(CHANNEL)}`);
 const broadcasterId = users.data.data?.[0]?.id;
-if (!broadcasterId) throw new Error(`chaîne "${CHANNEL}" introuvable`);
+if (!broadcasterId) fail(`Chaîne "${CHANNEL}" introuvable (${users.status} ${JSON.stringify(users.data)})`);
 
 let slot = null;
 let startedAt = null;
@@ -118,11 +129,11 @@ const sent = await helix(token, 'chat/messages', {
 const result = sent.data.data?.[0];
 
 if (!sent.ok || !result?.is_sent) {
-  console.error(`Envoi refusé (${sent.status}) :`, JSON.stringify(sent.data));
-  if (sent.status === 401 || sent.status === 403) {
-    console.error(`\nAutorisation manquante : connecte-toi avec le compte "${CHANNEL}" et ouvre une fois ce lien :\n${authorizeUrl()}\n(la redirection vers localhost qui échoue ensuite est normale)`);
-  }
-  process.exit(1);
+  const hint =
+    sent.status === 401 || sent.status === 403
+      ? `\nAutorisation manquante : connecté avec le compte "${CHANNEL}", ouvre une fois ce lien :\n${authorizeUrl()}`
+      : '';
+  fail(`Envoi refusé (${sent.status}) : ${JSON.stringify(sent.data)}${hint}`);
 }
 
 console.log(`✅ Envoyé${isTest ? ' (test)' : ''} : "${entry.text}"`);
