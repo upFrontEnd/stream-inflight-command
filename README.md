@@ -33,23 +33,32 @@ stream-command/
 │   ├── vite.config.js                      Config Vite (root fixé sur ce dossier, port 5183)
 │   ├── .env.example                        Gabarit de variables locales
 │   ├── index.html
-│   └── src/                                Dashboard (JS + SCSS)
+│   └── src/                                Dashboard (Vue + SCSS), même design que l'admin du site
+│       ├── App.vue                         Barre latérale + pages (Vol / Sons / Annonces), page dans l'ancre de l'URL
+│       ├── components/
+│       │   ├── AdminIcon.vue               Icônes SVG au trait (même jeu que l'admin du site)
+│       │   ├── VolPanel.vue                Page Vol : preview des commandes SimBrief
+│       │   ├── SoundsPanel.vue             Page Sons : liste + ajout de sons
+│       │   └── AnnouncementsPanel.vue      Page Annonces : liste + ajout de messages
+│       ├── fonts/Inter-Variable.woff2      Police Inter
 │       ├── img/
-│       │   └── logo_Lettre-1-V2-blanc.png  Logo Skyflyer Aviation (fond sombre)
+│       │   ├── logo.webp                   Logo Skyflyer Aviation (barre latérale)
+│       │   └── admin-bg.webp               Capture de vol en fond
 │       ├── js/
-│       │   ├── main.js                     Onglets (Vol / Sons / Annonces)
 │       │   ├── api.js                      Appels au Worker et au bot
-│       │   ├── icons.js                    SVG des icônes d'onglets
-│       │   ├── vol-panel.js                Onglet Vol : preview des commandes SimBrief
-│       │   ├── sounds-panel.js             Onglet Sons : liste + ajout de sons
-│       │   └── announcements-panel.js      Onglet Annonces : liste + ajout de messages
+│       │   ├── github-announcements.js     Annonces modifiées via l'API GitHub (sans bot)
+│       │   └── use-admin-nav.js            Page affichée, synchronisée avec l'ancre de l'URL
+│       ├── overlay/                        Overlay sons (Browser Source OBS)
 │       └── scss/
 │           ├── style.scss                  Point d'entrée : @use des partiels ci-dessous
-│           ├── _base.scss                  Variables CSS, reset, body
-│           ├── _layout.scss                En-tête, logo, onglets, icônes
-│           ├── _forms.scss                 Boutons, champs, dropzone (partagés)
-│           ├── _vol.scss                   Cartes de commandes, panneau JSON brut
-│           ├── _sounds.scss                Liste des sons, chips cliquables
+│           ├── _base.scss                  Variables CSS (thème sombre), police, reset, fond
+│           ├── _layout.scss                Barre latérale, barre du haut, page, bandeaux
+│           ├── _components.scss            Cartes, badges, boutons
+│           ├── _forms.scss                 Champs, colonnes, sélecteur, étapes
+│           ├── _chips.scss                 Pastilles (commandes son)
+│           ├── _dropzone.scss              Zone de dépôt de fichier
+│           ├── _vol.scss                   Cartes de commandes, données brutes
+│           ├── _sounds.scss                Page Sons
 │           └── _announcements.scss         Liste des messages d'annonce
 └── bot/
     ├── .env.example                        Gabarit de variables locales

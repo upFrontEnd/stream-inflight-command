@@ -1,138 +1,88 @@
-// Onglet Annonces : liste des messages qui tournent en boucle
-
+/* ==========================================================================
+   Annonces : messages postés en boucle (AnnouncementsPanel.vue)
+   ========================================================================== */
 .announce-list {
-  list-style: none;
-  margin: 1.5rem 0 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  margin: 0 -.75rem;
 }
 
-.announce-item {
-  display: flex;
+.announce {
   align-items: center;
-  gap: 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.65rem 0.85rem;
+  border-radius: var(--r-md);
+  display: flex;
+  gap: 1rem;
+  padding: .75rem;
+  transition: background-color .15s;
 
-  &__text {
-    flex: 1;
-    min-width: 0;
-    line-height: 1.4;
-    word-break: break-word;
-  }
+  & + & { border-top: 1px solid var(--border); }
 
-  &__countdown {
-    flex-shrink: 0;
-    font-size: 0.75rem;
-    font-family: ui-monospace, SFMono-Regular, monospace;
-    color: var(--accent);
-    background: var(--accent-dim);
-    border-radius: 999px;
-    padding: 0.15rem 0.55rem;
-    white-space: nowrap;
-  }
+  &:hover { background: rgba(255, 255, 255, .02); }
 
-  &__actions {
-    display: flex;
-    gap: 0.4rem;
-    flex-shrink: 0;
-  }
-
-  &__edit,
-  &__remove {
-    flex-shrink: 0;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-muted);
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    line-height: 1;
-
-    &:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-  }
-
-  &__remove:hover {
-    border-color: var(--error);
-    color: var(--error);
-  }
-
-  &--editing {
+  &--editing,
+  &--editing:hover {
     align-items: flex-start;
-  }
-
-  &__edit-input {
-    flex: 1;
-    min-width: 0;
-    background: var(--surface-alt);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 0.5rem 0.65rem;
-    font: inherit;
-    font-family: ui-monospace, SFMono-Regular, monospace;
-    resize: vertical;
-
-    &:focus {
-      outline: 2px solid var(--accent);
-      outline-offset: -1px;
-    }
-  }
-
-  &__save,
-  &__cancel {
-    flex-shrink: 0;
-    border: none;
-    border-radius: 6px;
-    padding: 0.4rem 0.7rem;
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-
-  &__save {
-    background: var(--accent);
-    color: #0b0d11;
-  }
-
-  &__cancel {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+    background: var(--surface-2);
   }
 }
 
-// Mode GitHub (sans bot) : liens côte à côte
-.panel__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
+.announce__index {
+  align-items: center;
+  background: var(--surface-2);
+  border-radius: 50%;
+  color: var(--muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: .78rem;
+  font-weight: 600;
+  height: 1.75rem;
+  justify-content: center;
+  width: 1.75rem;
 
-// Carte "Connecter GitHub" : étapes de création du jeton
-.steps {
-  margin: 0;
-  padding-left: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-
-  a {
+  .announce--next & {
+    background: var(--accent-bg);
     color: var(--accent);
   }
 
-  strong,
-  code {
-    color: var(--text);
-  }
+  .announce--editing & { background: var(--surface-3); }
+}
+
+.announce__text {
+  flex: 1;
+  font-size: .95rem;
+  line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.announce__countdown {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.announce__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: .15rem;
+}
+
+.announce__editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: .65rem;
+  min-width: 0;
+}
+
+.announce__editor-actions {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 599px) {
+  .announce { flex-wrap: wrap; }
+  .announce__text { flex-basis: calc(100% - 2.75rem); }
+  .announce__countdown { margin-left: 2.75rem; }
+  .announce__actions { margin-left: auto; }
 }

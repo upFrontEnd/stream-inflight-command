@@ -1,0 +1,72 @@
+/* Pastilles de codes (compagnies ICAO, types d'avion) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.chip {
+  align-items: center;
+  background: var(--accent-bg);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-family: var(--mono);
+  font-size: .78rem;
+  font-weight: 600;
+  gap: .3rem;
+  line-height: 1;
+  padding: .35rem .6rem;
+
+  &--muted {
+    background: rgba(255, 255, 255, .08);
+    color: var(--muted);
+  }
+
+  &--suggestion {
+    background: transparent;
+    border: 1px dashed var(--accent);
+    transition: background-color .15s;
+
+    &:hover { background: var(--accent-bg); }
+  }
+}
+
+.chip__remove {
+  align-items: center;
+  border-radius: 50%;
+  color: inherit;
+  display: inline-flex;
+  opacity: .7;
+  padding: .1rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, .1);
+    opacity: 1;
+  }
+}
+
+/* Commande son cliquable : copie la commande */
+.chip--button {
+  border-color: transparent;
+  font-size: .85rem;
+  padding: .45rem .75rem;
+  transition: background-color .15s, border-color .15s, color .15s;
+
+  &:hover { border-color: var(--accent); }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &:active { transform: scale(.97); }
+}
+
+.chip--copied,
+.chip--copied:hover {
+  background: var(--success-bg);
+  border-color: transparent;
+  color: var(--success);
+}

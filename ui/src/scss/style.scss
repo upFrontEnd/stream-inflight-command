@@ -1,6 +1,11 @@
+// Dashboard (index.html). Aucun style dans les composants : tout est ici.
+// Design repris de l'admin du site Skyflyer Aviation (src/admin/admin.scss).
 @use 'base';
 @use 'layout';
+@use 'components';
 @use 'forms';
+@use 'chips';
+@use 'dropzone';
 @use 'vol';
 @use 'sounds';
 @use 'announcements';
