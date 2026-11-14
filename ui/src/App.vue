@@ -37,6 +37,10 @@
             <AdminIcon name="code" class="sidebar__icon" />
             <span>Repo GitHub</span>
           </a>
+          <a class="sidebar__link" :href="SITE_ADMIN_URL">
+            <AdminIcon name="home" class="sidebar__icon" />
+            <span>Retour à l'admin du site</span>
+          </a>
         </div>
       </aside>
 
@@ -80,7 +84,8 @@ import AnnouncementsPanel from './components/AnnouncementsPanel.vue';
 import { useAdminNav } from './js/use-admin-nav.js';
 
 const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO ?? 'upFrontEnd/stream-inflight-command';
-const TWITCH_CHANNEL = import.meta.env.VITE_TWITCH_CHANNEL ?? '';
+const SITE_ADMIN_URL = 'https://www.skyflyer-aviation.com/admin.html';
+const TWITCH_CHANNEL =import.meta.env.VITE_TWITCH_CHANNEL ?? '';
 const overlayUrl = `${import.meta.env.BASE_URL}overlay.html${TWITCH_CHANNEL ? `?channel=${encodeURIComponent(TWITCH_CHANNEL)}` : ''}`;
 
 // Une entrée = une page du dashboard. La clé sert aussi d'ancre dans l'URL.
